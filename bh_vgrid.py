@@ -8,41 +8,41 @@ from bh import bhlib, actions
 def _init(b):
    
    environ["BH_PROJECT_NAME"] = "vgriddescriptors"
+
+   if b.mode == "intel":
+       environ["BH_MAKE"] = 'make'
+   elif b.mode == "xlf13":
+       environ["BH_MAKE"] = 'gmake' 
+
    environ["BH_PACKAGE_NAME"]  = "%(BH_PROJECT_NAME)s" % environ
    environ["BH_PACKAGE_NAMES"] = "%(BH_PROJECT_NAME)s" % environ
    environ["BH_PACKAGE_CONTROL_DIR"] = "%(BH_HERE_DIR)s" % environ
+   environ["SCRIPT_NAME"] = __file__+" -m "+b.mode+" -p "+b.platform % environ
 
 def _make(b):
    
     b.shell("""
             set -e
             cd ${BH_PULL_SOURCE}
-            REMOTE_NAME=gitlab_com
-            REMOTE=$(git remote -v | grep fetch | grep ${REMOTE_NAME} | awk '{print $2}')
-            if [ "${REMOTE}" = "" ];then
-               echo "ERROR git remote ${REMOTE_NAME} not found"
-               exit 1
-            fi
+            REMOTE=$(git remote -v | grep fetch | awk '{print $2}')
             (
              CONTROL_DIR=${BH_PACKAGE_CONTROL_DIR}/${BH_PROJECT_NAME}/.ssm.d
              mkdir -p ${CONTROL_DIR}
              cp ${BH_TOP_BUILD_DIR}/post-install ${CONTROL_DIR}
-             chmod +x ${CONTROL_DIR}/post-install
              CONTROL_FILE=${CONTROL_DIR}/control.template
              echo \"Package: ${BH_PACKAGE_NAME}\"                                                                  > ${CONTROL_FILE}
-             echo \"Version: ${BH_PULL_SOURCE_GIT_BRANCH}\"                                                       >> ${CONTROL_FILE}
-             echo \"Platform: ${ORDENV_PLAT}\"                                                                    >> ${CONTROL_FILE}
+             echo \"Version: x\"                                                                                  >> ${CONTROL_FILE}
+             echo \"Platform: x\"                                                                                 >> ${CONTROL_FILE}
              echo \"Maintainer: cmdn (A. Plante)\"                                                                >> ${CONTROL_FILE}
              echo \"BuildInfo: git clone ${REMOTE}\"                                                              >> ${CONTROL_FILE}
              echo \"           cd in new directory created\"                                                      >> ${CONTROL_FILE}
-             echo \"           git checkout -b temp ${BH_PULL_SOURCE_GIT_BRANCH}"\                                >> ${CONTROL_FILE}
-             echo \"           # or git checkout -b temp $(git rev-parse HEAD)"\                                  >> ${CONTROL_FILE}
-             echo \"           cd lib\"                                                                           >> ${CONTROL_FILE}
-             echo \"           . setup.dot\"                                                                      >> ${CONTROL_FILE}
+             echo \"           git checkout ${BH_PULL_SOURCE_GIT_BRANCH}"\                                        >> ${CONTROL_FILE}
+             echo \"           cd src\"                                                                           >> ${CONTROL_FILE}
              echo \"           make\"                                                                             >> ${CONTROL_FILE}
              echo \"Vertical grid descriptors package\"                                                           >> ${CONTROL_FILE}
-             cd ${BH_BUILD_DIR}/lib
-             ${BH_MAKE}
+             cd ${BH_BUILD_DIR}/src
+             ${BH_MAKE} vgrid_version
+             ${BH_MAKE} shared
             )""",environ)
    
 def _test(b):
@@ -59,14 +59,19 @@ def _install(b):
          set -e        
          mkdir -p ${BH_INSTALL_DIR}/lib
          cd ${BH_INSTALL_DIR}/lib
-         cp ${BH_TOP_BUILD_DIR}/lib/libdescrip.a libdescrip_${BH_PULL_SOURCE_GIT_BRANCH}.a
+         cp ${BH_TOP_BUILD_DIR}/src/libdescrip.a  libdescrip_${BH_PULL_SOURCE_GIT_BRANCH}.a
          ln -s libdescrip_${BH_PULL_SOURCE_GIT_BRANCH}.a libdescrip.a
+         if [ -f ${BH_TOP_BUILD_DIR}/src/libdescripshared.so ];then
+            cp ${BH_TOP_BUILD_DIR}/src/libdescripshared.so libdescripshared_${BH_PULL_SOURCE_GIT_BRANCH}.so
+            ln -s libdescripshared_${BH_PULL_SOURCE_GIT_BRANCH}.so libdescripshared.so
+         fi
          mkdir -p ${BH_INSTALL_DIR}/include
          cd ${BH_INSTALL_DIR}/include
-         cp ${BH_TOP_BUILD_DIR}/lib/*.mod .
-         cp ${BH_TOP_BUILD_DIR}/lib/vgrid_version.cdk .
+         cp ${BH_TOP_BUILD_DIR}/src/*.mod .
+         cp ${BH_TOP_BUILD_DIR}/src/*.h .
+         cp ${BH_TOP_BUILD_DIR}/src/vgrid_version.h* .
          mkdir -p ${BH_INSTALL_DIR}/src
-         cd ${BH_TOP_BUILD_DIR}/lib
+         cd ${BH_TOP_BUILD_DIR}/src
          ${BH_MAKE} clean
          cp * ${BH_INSTALL_DIR}/src
         )""")
@@ -75,7 +80,7 @@ if __name__ == "__main__":
    dr, b = bhlib.init(sys.argv, bhlib.PackageBuilder)
    b.actions.set("init", _init)
    b.actions.set("pull", [actions.pull.git_archive])
-   b.actions.set("clean", ["""(cd ${BH_BUILD_DIR}/lib; ./make_dependencies.ksh; echo BH_MAKE=${BH_MAKE}; ${BH_MAKE} clean)"""])
+   b.actions.set("clean", ["""(cd ${BH_BUILD_DIR}/src; ${BH_MAKE} clean)"""])
    b.actions.set("make", _make)
    #b.actions.set("test",_test)
    b.actions.set("install", _install)

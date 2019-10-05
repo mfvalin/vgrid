@@ -1,70 +1,60 @@
-# User options
-#FCFLAGS='=-C -g'
-RCOMPILE = s.compile
-DESCRIP_PATH = ../lib
-#RMN=rmn_014_rc2
-DIST=use_new_read use_new_gen topLevel_levels lowLevel_levels use_dpidpis gen_5999
+DESCRIP_PATH = ../src
 
-# Override incorrect implicits
-%.o : %.mod
+include $(DESCRIP_PATH)/setup.mk
 
-# Define suffix rules
-.SUFFIXES: .F90 .o
-.F90.o:
-	$(RCOMPILE) -optf $(FCFLAGS) -includes $(DESCRIP_PATH) -src $<
+ALL_SSM = -d $(HPCS_BASE) -d $(HPCS_COMP) -d $(RPN_LIB)
 
-OBJECTS = $(DESCRIP_PATH)/vgrid_descriptors.o $(DESCRIP_PATH)/vgrid_genab_5002.o $(DESCRIP_PATH)/vgrid_genab_1002_5001.o $(DESCRIP_PATH)/vgrid_genab_1001.o  $(DESCRIP_PATH)/vgrid_genab_2001.o $(DESCRIP_PATH)/vgrid_genab_1004.o $(DESCRIP_PATH)/utils.o $(DESCRIP_PATH)/vgrid_genab_5100.o
+DIST = levels_with_ref lowLevel_levels topLevel_levels use_dpidpis use_dpidpis_withref_prof use_new_gen use_new_read c_simple_pressure c_use_new_read
+
+default: distclean all
 
 all: $(DIST)
 
-use_new_read: use_new_read.F90 $(OBJECTS)
-	$(RCOMPILE) -optf $(FCFLAGS) -includes $(DESCRIP_PATH) -obj $(OBJECTS) -src $@.F90 -o $@ -librmn $(RMN) -libappl ${MODELUTILS}
+levels_with_ref: levels_with_ref.ftn90 $(DESCRIP_PATH)/libdescrip.a
+	. ssmuse-sh $(ALL_SSM) ;\
+	s.compile -optf =$(FFLAGS) -includes $(DESCRIP_PATH) -src $@.ftn90 -o $@ -libpath $(DESCRIP_PATH) -libappl rmn descrip
 
-use_new_gen: use_new_gen.F90 $(OBJECTS)
-	$(RCOMPILE) -optf $(FCFLAGS) -includes $(DESCRIP_PATH) -obj $(OBJECTS) -src $@.F90 -o $@ -librmn $(RMN) -libappl ${MODELUTILS}
+lowLevel_levels: lowLevel_levels.ftn90 $(DESCRIP_PATH)/libdescrip.a
+	. ssmuse-sh $(ALL_SSM) ;\
+	s.compile -optf =$(FFLAGS) -includes $(DESCRIP_PATH) -src $@.ftn90 -o $@ -libpath $(DESCRIP_PATH) -libappl rmn descrip
 
-topLevel_levels: topLevel_levels.F90 $(OBJECTS)
-	$(RCOMPILE) -optf $(FCFLAGS) -includes $(DESCRIP_PATH) -obj $(OBJECTS) -src $@.F90 -o $@ -librmn $(RMN) -libappl ${MODELUTILS}
+topLevel_levels: topLevel_levels.ftn90 $(DESCRIP_PATH)/libdescrip.a
+	. ssmuse-sh $(ALL_SSM) ;\
+	s.compile -optf =$(FFLAGS) -includes $(DESCRIP_PATH) -src $@.ftn90 -o $@ -libpath $(DESCRIP_PATH) -libappl rmn descrip
 
-lowLevel_levels: lowLevel_levels.F90 $(OBJECTS)
-	$(RCOMPILE) -optf $(FCFLAGS) -includes $(DESCRIP_PATH) -obj $(OBJECTS) -src $@.F90 -o $@ -librmn $(RMN) -libappl ${MODELUTILS}
+use_dpidpis: use_dpidpis.ftn90 $(DESCRIP_PATH)/libdescrip.a
+	. ssmuse-sh $(ALL_SSM) ;\
+	s.compile -optf =$(FFLAGS) -includes $(DESCRIP_PATH) -src $@.ftn90 -o $@ -libpath $(DESCRIP_PATH) -libappl rmn descrip
 
-use_dpidpis:	use_dpidpis.F90 $(OBJECTS)
-	$(RCOMPILE) -optf $(FCFLAGS) -includes $(DESCRIP_PATH) -obj $(OBJECTS) -src $@.F90 -o $@ -librmn $(RMN) -libappl ${MODELUTILS}
+use_dpidpis_withref_prof: use_dpidpis_withref_prof.ftn90 $(DESCRIP_PATH)/libdescrip.a
+	. ssmuse-sh $(ALL_SSM) ;\
+	s.compile -optf =$(FFLAGS) -includes $(DESCRIP_PATH) -src $@.ftn90 -o $@ -libpath $(DESCRIP_PATH) -libappl rmn descrip
 
-gen_5999:	gen_5999.F90 $(OBJECTS)
-	$(RCOMPILE) -optf $(FCFLAGS) -includes $(DESCRIP_PATH) -obj $(OBJECTS) -src $@.F90 -o $@ -librmn $(RMN) -libappl ${MODELUTILS}
+use_new_gen: use_new_gen.ftn90 $(DESCRIP_PATH)/libdescrip.a
+	. ssmuse-sh $(ALL_SSM) ;\
+	s.compile -optf =$(FFLAGS) -includes $(DESCRIP_PATH) -src $@.ftn90 -o $@ -libpath $(DESCRIP_PATH) -libappl rmn descrip
 
-$(DESCRIP_PATH)/vgrid_descriptors.o: $(DESCRIP_PATH)/vgrid_descriptors.F90
-	(cd $(DESCRIP_PATH) && $(MAKE) $(MAKEFLAGS) vgrid_descriptors.o)
+use_new_read: use_new_read.ftn90 $(DESCRIP_PATH)/libdescrip.a
+	. ssmuse-sh $(ALL_SSM) ;\
+	s.compile -optf =$(FFLAGS) -includes $(DESCRIP_PATH) -src $@.ftn90 -o $@ -libpath $(DESCRIP_PATH) -libappl rmn descrip
 
-$(DESCRIP_PATH)/vgrid_genab_1001.o: $(DESCRIP_PATH)/vgrid_genab_1001.F90
-	(cd $(DESCRIP_PATH) && $(MAKE) $(MAKEFLAGS) vgrid_genab_1001.o)
+c_simple_pressure: c_simple_pressure.c $(DESCRIP_PATH)/libdescrip.a
+	. ssmuse-sh $(ALL_SSM) ;\
+	s.compile -bidon c -main $@ -optc =$(CFLAGS) -includes $(DESCRIP_PATH) -src $@.c -o $@ -libpath $(DESCRIP_PATH) -libappl rmn descrip
 
-$(DESCRIP_PATH)/vgrid_genab_1004.o: $(DESCRIP_PATH)/vgrid_genab_1004.F90
-	(cd $(DESCRIP_PATH) && $(MAKE) $(MAKEFLAGS) vgrid_genab_1004.o)
+c_use_new_read: c_use_new_read.c $(DESCRIP_PATH)/libdescrip.a
+	. ssmuse-sh $(ALL_SSM) ;\
+	s.compile -bidon c -main $@ -optc =$(CFLAGS) -includes $(DESCRIP_PATH) -src $@.c -o $@ -libpath $(DESCRIP_PATH) -libappl rmn descrip
 
-$(DESCRIP_PATH)/vgrid_genab_2001.o: $(DESCRIP_PATH)/vgrid_genab_2001.F90
-	(cd $(DESCRIP_PATH) && $(MAKE) $(MAKEFLAGS) vgrid_genab_2001.o)
-
-$(DESCRIP_PATH)/vgrid_genab_5002.o: $(DESCRIP_PATH)/vgrid_genab_5002.F90
-	(cd $(DESCRIP_PATH) && $(MAKE) $(MAKEFLAGS) vgrid_genab_5002.o)
-
-$(DESCRIP_PATH)/vgrid_genab_1002_5001.o: $(DESCRIP_PATH)/vgrid_genab_1002_5001.F90
-	(cd $(DESCRIP_PATH) && $(MAKE) $(MAKEFLAGS) vgrid_genab_1002_5001.o)
-
-$(DESCRIP_PATH)/vgrid_genab_5100.o: $(DESCRIP_PATH)/vgrid_genab_5100.F90
-	(cd $(DESCRIP_PATH) && $(MAKE) $(MAKEFLAGS) vgrid_genab_5100.o)
-
-$(DESCRIP_PATH)/utils.o: $(DESCRIP_PATH)/utils.F90
-	(cd $(DESCRIP_PATH) && $(MAKE) $(MAKEFLAGS) utils.o)
+$(DESCRIP_PATH)/libdescrip.a: $(DESCRIP_PATH)/*.c $(DESCRIP_PATH)/*.ftn90 $(DESCRIP_PATH)/*.h $(DESCRIP_PATH)/*.hc
+	cd $(DESCRIP_PATH) ;\
+	gmake;\
 
 clean:
-	rm -f *.o *.mod test_output.fst
+	rm -f *.f90 *.o *.mod test_output.fst
 
 distclean: clean
 	rm -f $(DIST)
 
 tild:
 	rm -f *~
-
