@@ -1,5 +1,5 @@
 
-  if(! Cvgd_is_valid(self,"SELF")){
+  if(! C_is_valid(self,"SELF")){
     printf("(Cvgd) ERROR in %s, invalid vgrid.\n",proc_name);
     return(VGD_ERROR);
   }
@@ -59,6 +59,24 @@
 	return(VGD_ERROR);
     } else {
       if( C_compute_pressure_5002_5003_5004_5005(self, ni, nj, nk, ip1_list, levels, sfc_field, in_log, dpidpis) == VGD_ERROR)
+	return(VGD_ERROR);
+    }
+    break;
+  case 5100:
+    if(double_interface){
+      if( C_compute_pressure_5100_8(self, ni, nj, nk, ip1_list, levels_8, sfc_field_8, sfc_field_ls_8, in_log, dpidpis) == VGD_ERROR)
+	return(VGD_ERROR);
+    } else {
+      if( C_compute_pressure_5100(self, ni, nj, nk, ip1_list, levels, sfc_field, sfc_field_ls, in_log, dpidpis) == VGD_ERROR)
+	return(VGD_ERROR);
+    }
+    break;
+  case 5999:
+    if(double_interface){
+      if( C_compute_pressure_1001_1002_8(self, ni, nj, nk, ip1_list, levels_8, sfc_field_8, in_log) == VGD_ERROR)
+	return(VGD_ERROR);
+    } else {
+      if( C_compute_pressure_1001_1002(self, ni, nj, nk, ip1_list, levels, sfc_field, in_log) == VGD_ERROR)
 	return(VGD_ERROR);
     }
     break;

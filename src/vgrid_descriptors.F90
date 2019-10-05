@@ -25,6 +25,7 @@ module vGrid_Descriptors
 
    ! Naming convention
    !
+   ! var    may y a float or an integer
    ! var_8  is of type real*8
    ! var_L  is of type logical
    ! var_CP is of type type(c_prt) from iso_c_binging
@@ -54,7 +55,6 @@ module vGrid_Descriptors
    ! Private class variables
    logical :: ALLOW_RESHAPE=.false.              ! Allow reshape of class pointer members
    integer, parameter :: KEY_LENGTH=4            !length of key string considered for get/put operations
-   integer, parameter :: ETIK_LENGTH=12          !length of standard file etikets
    character(len=1), dimension(3), parameter :: MATCH_GRTYP=(/'X','Y','Z'/) !grid types with ip1,2 to ig1,2 mapping
    character(len=1) :: one_char                  !character mold for tranfer function
 
@@ -68,7 +68,7 @@ module vGrid_Descriptors
       character(len=4) :: grtyp
       character(len=4) :: typvar
       character(len=KEY_LENGTH) :: nomvar
-      character(len=ETIK_LENGTH) :: etiket
+      character(len=VGD_LEN_ETIK) :: etiket
    end type FSTD
    type FSTD_ext
       sequence
@@ -78,7 +78,7 @@ module vGrid_Descriptors
       character(len=4) :: grtyp
       character(len=4) :: typvar
       character(len=KEY_LENGTH) :: nomvar
-      character(len=ETIK_LENGTH) :: etiket
+      character(len=VGD_LEN_ETIK) :: etiket
    end type FSTD_ext
    type :: vgrid_descriptor
       ! The only member of this type is a C pointer
@@ -86,14 +86,14 @@ module vGrid_Descriptors
    end type vgrid_descriptor
    
    interface
-
-      integer function f_diag_withref_8(vgd_CP, ni, nj, nk, ip1_list_CP, levels_CP,sfc_field_CP, in_log, dpidpis) bind(c, name='Cvgd_diag_withref_8')
+      
+      integer function f_diag_withref_8(vgd_CP, ni, nj, nk, ip1_list_CP, levels_CP,sfc_field_CP,sfc_field_ls_CP, in_log, dpidpis) bind(c, name='C_diag_withref_8')
          use iso_c_binding, only: c_ptr, c_int
-         type(c_ptr), value :: vgd_CP, ip1_list_CP, sfc_field_CP
+         type(c_ptr), value :: vgd_CP, ip1_list_CP, sfc_field_CP, sfc_field_ls_CP
          integer (c_int), value :: in_log, dpidpis
          type(c_ptr), value  :: levels_CP
          integer (c_int), value :: ni, nj, nk
-      end function f_diag_withref_8
+       end function f_diag_withref_8
 
       integer function f_get_int(vgd_CP, key, value_CP, quiet) bind(c, name='Cvgd_get_int')
          use iso_c_binding, only: c_ptr, c_char, c_int
@@ -196,7 +196,7 @@ module vGrid_Descriptors
          character(kind=c_char) :: key(*), value(*)
       end function f_put_char
 
-      integer function f_is_valid(vgd_CP, valid_table_name) bind(c, name='Cvgd_is_valid')
+      integer function f_is_valid(vgd_CP, valid_table_name) bind(c, name='C_is_valid')
          use iso_c_binding, only: c_ptr, c_char
          type(c_ptr), value :: vgd_CP
          character(kind=c_char) :: valid_table_name(*)
@@ -237,24 +237,24 @@ module vGrid_Descriptors
          integer (c_int), value :: ni, nj, nk
       end function f_new_from_table
 
-      integer function f_new_gen(vgd,kind,version,hyb_CP,size_hyb,rcoef1_CP,rcoef2_CP,ptop_8_CP,pref_8_CP,ptop_out_8_CP, &
-           ip1,ip2,dhm_CP,dht_CP) bind(c, name='Cvgd_new_gen')
+      integer function f_new_gen(vgd,kind,version,hyb_CP,size_hyb,rcoef1_CP,rcoef2_CP,rcoef3_CP,rcoef4_CP,ptop_8_CP,pref_8_CP,ptop_out_8_CP, &
+           ip1,ip2,dhm_CP,dht_CP,avg) bind(c, name='C_new_gen')
          use iso_c_binding, only : c_ptr, c_int
          type(c_ptr) :: vgd
          integer (c_int), value :: kind, version, size_hyb
-         type(c_ptr), value :: hyb_CP,rcoef1_CP,rcoef2_CP,ptop_8_CP,pref_8_CP,ptop_out_8_CP
+         type(c_ptr), value :: hyb_CP,rcoef1_CP,rcoef2_CP,rcoef3_CP,rcoef4_CP,ptop_8_CP,pref_8_CP,ptop_out_8_CP
          type(c_ptr), value :: dhm_CP,dht_CP
-         integer (c_int), value :: ip1,ip2
+         integer (c_int), value :: ip1,ip2,avg
       end function f_new_gen
       
       integer function f_new_build_vert(vgd,kind,version,nk,ip1,ip2, &
-           ptop_8_CP, pref_8_CP, rcoef1_CP, rcoef2_CP, &
-           a_m_8_CP, b_m_8_CP, a_t_8_CP, b_t_8_CP, ip1_m_CP, ip1_t_CP, nl_m, nl_t) bind(c, name='Cvgd_new_build_vert')         
+           ptop_8_CP, pref_8_CP, rcoef1_CP, rcoef2_CP, rcoef3_CP, rcoef4_CP, &
+           a_m_8_CP, b_m_8_CP, c_m_8_CP, a_t_8_CP, b_t_8_CP, c_t_8_CP, ip1_m_CP, ip1_t_CP, nl_m, nl_t) bind(c, name='C_new_build_vert')
          use iso_c_binding, only : c_ptr, c_int
          type(c_ptr) :: vgd
          integer (c_int), value :: kind,version,nk,ip1,ip2
-         type(c_ptr), value :: ptop_8_CP, pref_8_CP, rcoef1_CP, rcoef2_CP
-         type(c_ptr), value :: a_m_8_CP, b_m_8_CP, a_t_8_CP, b_t_8_CP, ip1_m_CP, ip1_t_CP
+         type(c_ptr), value :: ptop_8_CP, pref_8_CP, rcoef1_CP, rcoef2_CP, rcoef3_CP, rcoef4_CP
+         type(c_ptr), value :: a_m_8_CP, b_m_8_CP, c_m_8_CP, a_t_8_CP, b_t_8_CP, c_t_8_CP, ip1_m_CP, ip1_t_CP
          integer (c_int), value :: nl_m, nl_t
       end function f_new_build_vert
 
@@ -306,7 +306,7 @@ module vGrid_Descriptors
       !module procedure put_real_1d
       module procedure put_real8
       !module procedure put_real8_1d
-      !module procedure put_real8_3d
+      module procedure put_real8_3d
       module procedure put_char
    end interface vgd_put
 
@@ -350,7 +350,7 @@ module vGrid_Descriptors
 contains
    
    integer function new_read(self,unit,format,ip1,ip2,kind,version) result(status)
-      use utils, only: up
+      use vgrid_utils, only: up
       ! Coordinate constructor - read from a file and initialize instance
       type(vgrid_descriptor), intent(inout) :: self !Vertical descriptor instance
       integer, intent(in) :: unit                 !File unit to read descriptor information from
@@ -446,25 +446,27 @@ contains
       
     end function new_from_table
 
-   integer function new_gen(self,kind,version,hyb,rcoef1,rcoef2,ptop_8,pref_8,ptop_out_8,ip1,ip2,stdout_unit,dhm,dht) result(status)
+   integer function new_gen(self,kind,version,hyb,rcoef1,rcoef2,rcoef3,rcoef4,ptop_8,pref_8,ptop_out_8,ip1,ip2,stdout_unit,dhm,dht,avg_L) result(status)
       implicit none
 
       ! Coordinate constructor - build vertical descriptor from hybrid coordinate entries
       type(vgrid_descriptor),target,intent(inout) :: self         !Vertical descriptor instance    
       integer, intent(in) :: kind,version                  !Kind,version to create
       real, target, dimension(:),intent(in) :: hyb         !List of hybrid levels
-      real, target, optional, intent(in) :: rcoef1,rcoef2  !R-coefficient values for rectification
+      real, target, optional, intent(in) :: rcoef1,rcoef2,rcoef3,rcoef4 !R-coefficient values for rectification
       real*8, target, optional, intent(in) :: ptop_8       !Top-level pressure (Pa) inout
       real*8, target, optional, intent(out):: ptop_out_8   !Top-level pressure (Pa) output if ptop_8 < 0
       real*8, target, optional, intent(in) :: pref_8       !Reference-level pressure (Pa)
       integer, target, optional, intent(in) :: ip1,ip2     !IP1,2 values for FST file record [0,0]
       integer, target, optional, intent(in) :: stdout_unit !Unit number for verbose output [STDERR]
       real, target, optional, intent(in) :: dhm,dht        !Diag levels Height for Momentum/Thermo vaiables
-      
+      logical, optional :: avg_L                           !Obtain thermo A, B and C by averaging momentum ones (Temporary for Vcode 5100)
+                                                           !   If this option becoms permenant, some code will have to be added
+                                                           !   to check this option for vcode 5100 only.
       ! Local variables
-      type(c_ptr) :: hyb_CP, rcoef1_CP, rcoef2_CP, ptop_8_CP, ptop_out_8_CP, pref_8_CP
+      type(c_ptr) :: hyb_CP, rcoef1_CP, rcoef2_CP, rcoef3_CP, rcoef4_CP, ptop_8_CP, ptop_out_8_CP, pref_8_CP
       type(c_ptr) :: stdout_unit_CP, dhm_CP, dht_CP
-      integer :: my_ip1, my_ip2
+      integer :: my_ip1, my_ip2, my_avg
 
       hyb_CP = c_loc(hyb)
 
@@ -479,6 +481,16 @@ contains
          rcoef2_CP = c_loc(rcoef2)
       else
          rcoef2_CP = C_NULL_PTR
+      endif
+      if(present(rcoef3))then
+         rcoef3_CP = c_loc(rcoef3)
+      else
+         rcoef3_CP = C_NULL_PTR
+      endif
+      if(present(rcoef4))then
+         rcoef4_CP = c_loc(rcoef4)
+      else
+         rcoef4_CP = C_NULL_PTR
       endif
       if(present(ptop_8))then
          ptop_8_CP = c_loc(ptop_8)
@@ -522,12 +534,20 @@ contains
       else
          dht_CP = C_NULL_PTR
       endif
+      my_avg=1
+      if(present(avg_L))then
+         if(avg_L)then
+            my_avg=1
+         else
+            my_avg=0
+         endif
+      endif
       
       if(.not.c_associated(self%cptr))then
          self%cptr = C_NULL_PTR
       endif
 
-      if(f_new_gen(self%cptr,kind,version,hyb_CP,size(hyb),rcoef1_CP,rcoef2_CP,ptop_8_CP,pref_8_CP,ptop_out_8_CP,my_ip1,my_ip2,dhm_CP,dht_CP) == VGD_ERROR)then
+      if(f_new_gen(self%cptr,kind,version,hyb_CP,size(hyb),rcoef1_CP,rcoef2_CP,rcoef3_CP,rcoef4_CP,ptop_8_CP,pref_8_CP,ptop_out_8_CP,my_ip1,my_ip2,dhm_CP,dht_CP,my_avg) == VGD_ERROR)then
          print*,'(F_vgd) ERROR in new_gen, problem with f_new_gen'
          return
       endif
@@ -535,25 +555,26 @@ contains
    end function new_gen
 
    integer function new_build_vert(self,kind,version,nk,ip1,ip2, &
-        ptop_8,pref_8,rcoef1,rcoef2,a_m_8,b_m_8,a_t_8,b_t_8, &
-        ip1_m,ip1_t) result(status)
+        ptop_8,pref_8,rcoef1,rcoef2,rcoef3,rcoef4,a_m_8,b_m_8,a_t_8,b_t_8, &
+        ip1_m,ip1_t,c_m_8,c_t_8) result(status)
       ! Coordinate constructor - build vertical descriptor from arguments
       type(vgrid_descriptor) :: self                    !Vertical descriptor instance    
       integer, intent(in) :: kind,version               !Kind,version to create
       integer, intent(in) :: nk                         !Number of levels
       integer,target , optional, intent(in) :: ip1,ip2          !IP1,2 values for FST file record [0,0]
-      real,target , optional, intent(in) :: rcoef1,rcoef2       !R-coefficient values for rectification
+      real,target , optional, intent(in) :: rcoef1,rcoef2,rcoef3,rcoef4 !R-coefficient values for rectification
       real*8,target , optional, intent(in) :: ptop_8            !Top-level pressure (Pa)
       real*8,target , optional, intent(in) :: pref_8            !Reference-level pressure (Pa)
       real*8,target , optional, dimension(:) :: a_m_8,a_t_8     !A-coefficients for momentum(m),thermo(t) levels
       real*8,target , optional, dimension(:) :: b_m_8,b_t_8     !B-coefficients for momentum(m),thermo(t) levels
+      real*8,target , optional, dimension(:) :: c_m_8,c_t_8     !C-coefficients for momentum(m),thermo(t) levels
       integer,target , optional, dimension(:) :: ip1_m,ip1_t    !Level ID (IP1) for momentum(m),thermo(t) levels
 
       ! Assign optional argument to C_NULL_PTR    
 
       ! Local variables
-      type(c_ptr) :: rcoef1_CP, rcoef2_CP, ptop_8_CP, pref_8_CP
-      type(c_ptr) :: a_m_8_CP, b_m_8_CP, a_t_8_CP, b_t_8_CP, ip1_m_CP, ip1_t_CP
+      type(c_ptr) :: rcoef1_CP, rcoef2_CP, rcoef3_CP, rcoef4_CP, ptop_8_CP, pref_8_CP
+      type(c_ptr) :: a_m_8_CP, b_m_8_CP, c_m_8_CP, a_t_8_CP, b_t_8_CP, c_t_8_CP, ip1_m_CP, ip1_t_CP
       integer l_ip1,l_ip2,nl_m, nl_t
 
       status = VGD_ERROR
@@ -591,6 +612,16 @@ contains
       else
          rcoef2_CP = C_NULL_PTR
       endif
+      if(present(rcoef3))then
+         rcoef3_CP = c_loc(rcoef3)
+      else
+         rcoef3_CP = C_NULL_PTR
+      endif
+      if(present(rcoef4))then
+         rcoef4_CP = c_loc(rcoef4)
+      else
+         rcoef4_CP = C_NULL_PTR
+      endif
       if(present(a_m_8))then
          a_m_8_CP = c_loc(a_m_8)
          nl_m = size(a_m_8)
@@ -601,6 +632,11 @@ contains
          b_m_8_CP = c_loc(b_m_8)
       else
          b_m_8_CP = C_NULL_PTR
+      endif
+      if(present(c_m_8))then
+         c_m_8_CP = c_loc(c_m_8)
+      else
+         c_m_8_CP = C_NULL_PTR
       endif
       if(present(a_t_8))then
          a_t_8_CP = c_loc(a_t_8)
@@ -613,6 +649,11 @@ contains
       else
          b_t_8_CP = C_NULL_PTR
       endif
+      if(present(c_t_8))then
+         c_t_8_CP = c_loc(c_t_8)
+      else
+         c_t_8_CP = C_NULL_PTR
+      endif
       if(present(ip1_m))then
          ip1_m_CP = c_loc(ip1_m)
       else
@@ -624,8 +665,8 @@ contains
          ip1_t_CP = C_NULL_PTR
       endif
       if( f_new_build_vert(self%cptr,kind,version,nk,l_ip1,l_ip2, &
-           ptop_8_CP, pref_8_CP, rcoef1_CP, rcoef2_CP, &
-           a_m_8_CP, b_m_8_CP, a_t_8_CP, b_t_8_CP, ip1_m_CP, ip1_t_CP, nl_m, nl_t) == VGD_ERROR )then
+           ptop_8_CP, pref_8_CP, rcoef1_CP, rcoef2_CP, rcoef3_CP, rcoef4_CP, &
+           a_m_8_CP, b_m_8_CP, c_m_8_CP, a_t_8_CP, b_t_8_CP, c_t_8_CP, ip1_m_CP, ip1_t_CP, nl_m, nl_t) == VGD_ERROR )then
          print*,'(F_vgd) ERROR in new_build_vert, problem with c_new_build_vert',VGD_ERROR
          return
       endif
@@ -641,7 +682,7 @@ contains
    end function garbage_collection
 
    integer function getopt_logical(key,value,quiet) result(status)
-      use utils, only: up
+      use vgrid_utils, only: up
       character(len=*), intent(in) :: key           !Descriptor key to retrieve
       logical, intent(out) :: value                 !Retrieved value
       logical, intent(in), optional :: quiet        !Do not generate messages
@@ -863,14 +904,14 @@ contains
     logical, optional, intent(in) :: in_log             !Compute levels in ln() [.false.]
 
     ! Internal variables
-    integer :: fstinf,ni,nj,nk,sfc_key,istat,error,fstluk,i,ip1,ip2,match_ipig
+    integer :: istat,error,i,ip1,ip2,match_ipig
     integer, dimension(size(fstkeys)) :: ip1_list
-    type(FSTD_ext) prmk,prm_p0,prm_check
-    real, dimension(:,:), pointer :: p0
+    type(FSTD_ext) prmk,prm_check
+    real, dimension(:,:), pointer :: p0, p0ls
     logical :: my_in_log, relax_ipig_match_L
-    character(len=4) :: ref_name
+    character(len=VGD_LEN_RFLD) :: ref_name
 
-    nullify(p0)
+    nullify(p0, p0ls)
     
     relax_ipig_match_L=.false.
 
@@ -928,11 +969,6 @@ contains
        call msg(MSG_ERROR,VGD_PRFX//for_msg)
        return
     endif
-    if ( vgd_get(self,"RFLD",ref_name) == VGD_ERROR )then
-       write(for_msg,*) 'ERROR in levels_readref with vgd_get on RFLD'
-       call msg(MSG_ERROR,VGD_PRFX//for_msg)
-       return
-    endif
     if (match_ipig == 1) then
        if (prmk%ig1 /= ip1 .or. prmk%ig2 /= ip2) then
           write(for_msg,*) 'fstkeys do not correspond to the correct grid descriptor'
@@ -945,46 +981,32 @@ contains
     endif
 
     ! Check surface field if needed
-    sfc_valid: if (is_valid(self,"ref_name_valid")) then
-       sfc_key = fstinf(unit,ni,nj,nk,prmk%datev,prmk%etiket,-1,prmk%ip2,prmk%ip3,' ',ref_name)
-       if(sfc_key < 0)then
-          write(for_msg,*) 'cannot find ',ref_name,' for :'
-          call msg(MSG_ERROR,VGD_PRFX//for_msg)
-          write(for_msg,*) 'datev=',prmk%datev,' etiket=',prmk%etiket,' ip2=',prmk%ip2,' ip3=',prmk%ip3
-          call msg(MSG_ERROR,VGD_PRFX//for_msg)
-          return   
-       endif
-       istat=my_fstprm(sfc_key,prm_p0)
-       if(prm_p0%ni.ne.prmk%ni.or.prm_p0%nj.ne.prmk%nj)then
-          write(for_msg,*) 'horizontal grid mismatch for '//trim(ref_name),ni,nj,' vs',prmk%ni,prmk%nj
+    sfc_large_scale_valid: if ( is_valid(self,"ref_namel_valid") ) then
+       if ( vgd_get(self,"RFLS",ref_name) == VGD_ERROR )then
+          write(for_msg,*) 'ERROR in levels_readref with vgd_get on RFLS'
           call msg(MSG_ERROR,VGD_PRFX//for_msg)
           return
        endif
-       if (match_ipig == 1) then
-          if (prm_p0%ig1 /= ip1 .or. prm_p0%ig2 /= ip2) then
-             write(for_msg,*) 'sfc_field ig1 ig2 do not correspond to the correct grid descriptor'
-             call msg(MSG_ERROR,VGD_PRFX//for_msg)
-             write(for_msg,'("   expecting (ip1,ip2)->(",i8,",",i8,"), got (ig1,ig2)->(",i8,",",i8,")")')&
-                  ip1,ip2,prm_p0%ig1,prm_p0%ig2
-             call msg(MSG_ERROR,VGD_PRFX//for_msg)                            
-             return
-          endif
-       endif
-       allocate(p0(ni,nj),stat=error)
-       if (error /= 0) then
-          nullify(p0)
-          write(for_msg,*) 'cannot allocate space for p0 in levels_readref'
+       istat=get_ref( p0ls, self, ref_name, unit, prmk)
+       if(istat == VGD_ERROR)then
+          write(for_msg,*) 'Problem getting reference field ',trim(ref_name)
           call msg(MSG_ERROR,VGD_PRFX//for_msg)
           return
        endif
-       error = fstluk(p0,sfc_key,ni,nj,nk)
-       if(error < 0 )then
-          write(for_msg,*) 'problem with fstluk '//trim(ref_name)//' in levels_readref'
+    end if sfc_large_scale_valid
+
+    sfc_valid: if( is_valid(self,"ref_name_valid")) then
+       if ( vgd_get(self,"RFLD",ref_name) == VGD_ERROR )then
+          write(for_msg,*) 'ERROR in levels_readref with vgd_get on RFLD'
           call msg(MSG_ERROR,VGD_PRFX//for_msg)
-          deallocate(p0)
           return
        endif
-       if (trim(ref_name) == 'P0') p0 = p0*100. !convert mb to Pa
+       istat=get_ref(p0,self,ref_name,unit,prmk)
+       if(istat == VGD_ERROR)then
+          write(for_msg,*) 'Problem getting reference field ',trim(ref_name)
+          call msg(MSG_ERROR,VGD_PRFX//for_msg)
+          return
+       endif
     else
        allocate(p0(1,1),stat=error)
        if (error /= 0) then
@@ -995,10 +1017,15 @@ contains
        endif
        p0 = VGD_MISSING
     endif sfc_valid
-   
+    
     ! Wrap call to level calculator
-    error = levels_withref(self,sfc_field=p0,ip1_list=ip1_list,levels=levels,in_log=my_in_log)
+    if (is_valid(self,"ref_namel_valid")) then
+       error = levels_withref(self,sfc_field=p0,sfc_field_ls=p0ls,ip1_list=ip1_list,levels=levels,in_log=my_in_log)
+    else
+       error = levels_withref(self,sfc_field=p0,ip1_list=ip1_list,levels=levels,in_log=my_in_log)
+    endif
     deallocate(p0)
+    if(associated(p0ls))deallocate(p0ls)
     if (error /= VGD_OK) then
        write(for_msg,*) 'got error return from levels_withref in levels_readref'
        call msg(MSG_ERROR,VGD_PRFX//for_msg)
@@ -1010,16 +1037,17 @@ contains
     return
   end function levels_readref
 
-  integer function levels_withref_prof(self,ip1_list,levels,sfc_field,in_log) result(status)
-     use utils, only: get_allocate
+  integer function levels_withref_prof(self,ip1_list,levels,sfc_field,in_log,sfc_field_ls) result(status)
+     use vgrid_utils, only: get_allocate
      type(vgrid_descriptor), intent(in) :: self                  !Vertical descriptor instance
      integer, dimension(:), intent(in) :: ip1_list               !Key of prototype field
      real, dimension(:), pointer :: levels                       !Physical level values
      real, optional, intent(in) :: sfc_field                     !Surface field reference for coordinate [none]
+     real, optional, intent(in) :: sfc_field_ls                  !Surface large scale field reference for coordinate [none]
      logical, optional, intent(in) :: in_log                     !Compute levels in ln() [.false.]          
 
      ! Local variables
-     real*8 :: my_sfc_field_8
+     real*8 :: my_sfc_field_8, my_sfc_field_ls_8
      real*8, dimension(:), pointer :: levels_8
      integer :: error,stat
      logical :: my_in_log
@@ -1038,11 +1066,17 @@ contains
      ! Set default values
      my_sfc_field_8 = VGD_MISSING
      if (present(sfc_field)) my_sfc_field_8 = sfc_field
+     my_sfc_field_ls_8 = VGD_MISSING
+     if (present(sfc_field_ls)) my_sfc_field_ls_8 = sfc_field_ls
      my_in_log = .false.
      if (present(in_log)) my_in_log = in_log
 
      ! Wrap call to level calculation
-     stat = diag_withref_prof_8(self,ip1_list,levels_8,sfc_field=my_sfc_field_8,in_log=my_in_log)
+     if(present(sfc_field_ls))then
+        stat = diag_withref_prof_8(self,ip1_list,levels_8,sfc_field=my_sfc_field_8,sfc_field_ls=my_sfc_field_ls_8,in_log=my_in_log)
+     else
+        stat = diag_withref_prof_8(self,ip1_list,levels_8,sfc_field=my_sfc_field_8,in_log=my_in_log)
+     endif
      if(stat==VGD_ERROR)then
         if(associated(levels_8))deallocate(levels_8)
         return
@@ -1091,7 +1125,7 @@ contains
   end function levels_withref_prof_8
 
   integer function dpidpis_withref_prof(self,ip1_list,dpidpis,sfc_field) result(status)
-     use utils, only: get_allocate,up
+     use vgrid_utils, only: get_allocate,up
      type(vgrid_descriptor), intent(in) :: self                  !Vertical descriptor instance
      integer, dimension(:), intent(in) :: ip1_list               !Key of prototype field
      real, dimension(:), pointer :: dpidpis                      !Derivative values
@@ -1135,7 +1169,7 @@ contains
   end function dpidpis_withref_prof
 
   integer function dpidpis_withref_prof_8(self,ip1_list,dpidpis,sfc_field) result(status)
-     use utils, only: up
+     use vgrid_utils, only: up
      type(vgrid_descriptor), intent(in) :: self                  !Vertical descriptor instance
      integer, dimension(:), intent(in) :: ip1_list               !Key of prototype field
      real*8, dimension(:), pointer :: dpidpis                      !Derivative values
@@ -1166,27 +1200,28 @@ contains
      return
   end function dpidpis_withref_prof_8
 
-  integer function diag_withref_prof_8(self,ip1_list,levels,sfc_field,in_log,dpidpis) result(status)
-     use utils, only: get_allocate
+  integer function diag_withref_prof_8(self,ip1_list,levels,sfc_field,in_log,dpidpis,sfc_field_ls) result(status)
+     use vgrid_utils, only: get_allocate
      type(vgrid_descriptor), intent(in) :: self                  !Vertical descriptor instance
      integer, dimension(:), intent(in) :: ip1_list               !Key of prototype field
      real*8, dimension(:), pointer :: levels                       !Physical level values
      real*8, optional, intent(in) :: sfc_field                     !Surface field reference for coordinate [none]
+     real*8, optional, intent(in) :: sfc_field_ls                  !Surface large scale field reference for coordinate [none]
      logical, optional, intent(in) :: in_log                     !Compute levels in ln() [.false.]          
      logical, optional, intent(in) :: dpidpis                    !Compute partial derivative of hydrostatic pressure (pi) with
                                                                  !   respect to surface hydrostatic pressure(pis) [.false.]
      
      ! Local variables
      integer :: error,nk
-     real*8 :: my_sfc_field
-     real*8, dimension(:,:), pointer :: sfc_field_2d
+     real*8 :: my_sfc_field, my_sfc_field_ls
+     real*8, dimension(:,:), pointer :: sfc_field_2d, sfc_field_ls_2d
      real*8, dimension(:,:,:), pointer :: levels_3d
      logical :: my_in_log,my_dpidpis
 
      ! Set error status
      status = VGD_ERROR
 
-     nullify(sfc_field_2d,levels_3d)
+     nullify(sfc_field_2d,sfc_field_ls_2d,levels_3d)
 
      if(.not.is_valid(self,'SELF'))then
         write(for_msg,*) 'vgrid structure is not valid in levels_withref_prof_8'
@@ -1197,6 +1232,8 @@ contains
      ! Set default values
      my_sfc_field = VGD_MISSING
      if (present(sfc_field)) my_sfc_field = sfc_field
+     my_sfc_field_ls = VGD_MISSING
+     if (present(sfc_field_ls)) my_sfc_field_ls = sfc_field_ls
      my_in_log = .false.
      if (present(in_log)) my_in_log = in_log
      my_dpidpis = .false.
@@ -1204,17 +1241,19 @@ contains
 
      nk=size(ip1_list)
 
-     allocate(sfc_field_2d(1,1),levels_3d(1,1,nk),stat=error)
+     allocate(sfc_field_2d(1,1),sfc_field_ls_2d(1,1),levels_3d(1,1,nk),stat=error)
      if (error /= 0) then
         if(associated(sfc_field_2d))deallocate(sfc_field_2d)
+        if(associated(sfc_field_ls_2d))deallocate(sfc_field_ls_2d)
         if(associated(levels_3d))deallocate(levels_3d)
         write(for_msg,*) 'cannot allocate space for p0/levels in diag_withref_prof_8'
         call msg(MSG_ERROR,VGD_PRFX//for_msg)
         return
      endif
      sfc_field_2d=my_sfc_field
-     ! Wrap call to level calculator    
-     error = diag_withref_8(self,sfc_field=sfc_field_2d,ip1_list=ip1_list,levels=levels_3d,in_log=my_in_log,dpidpis=my_dpidpis)    
+     sfc_field_ls_2d=my_sfc_field_ls         
+     ! Wrap call to level calculator
+     error = diag_withref_8(self,sfc_field=sfc_field_2d,sfc_field_ls=sfc_field_ls_2d,ip1_list=ip1_list,levels=levels_3d,in_log=my_in_log,dpidpis=my_dpidpis)    
      if (error /= 0) then
         deallocate(sfc_field_2d,levels_3d)
         write(for_msg,*) 'problem with diag_withref in diag_withref_prof_8'
@@ -1224,29 +1263,30 @@ contains
      error = get_allocate('levels',levels,nk,ALLOW_RESHAPE,'(in diag_withref_prof_8)')
      if(error/=0)return
      levels=levels_3d(1,1,1:nk)
-     deallocate(sfc_field_2d,levels_3d)
+     deallocate(sfc_field_2d,sfc_field_ls_2d,levels_3d)
      ! Set status and return
      status = VGD_OK
      return
 
   end function diag_withref_prof_8
 
-  integer function levels_withref(self,ip1_list,levels,sfc_field,in_log) result(status)
-     use utils, only: get_allocate
+  integer function levels_withref(self,ip1_list,levels,sfc_field,in_log,sfc_field_ls) result(status)
+     use vgrid_utils, only: get_allocate
      ! Given referent, compute physical levelling information from the vertical description
      type(vgrid_descriptor), intent(in) :: self                  !Vertical descriptor instance
      integer, dimension(:), intent(in) :: ip1_list               !Key of prototype field
      real, dimension(:,:,:), pointer :: levels                   !Physical level values
      real, dimension(:,:), optional, intent(in) :: sfc_field     !Surface field reference for coordinate [none]
+     real, dimension(:,:), optional, intent(in) :: sfc_field_ls  !Surface field large scale reference for coordinate [none]
      logical, optional, intent(in) :: in_log                     !Compute levels in ln() [.false.]
 
      ! Local variables
      integer :: error,ni,nj,stat
      real*8, dimension(:,:,:), pointer :: levels_8
-     real*8, dimension(:,:), pointer :: my_sfc_field
+     real*8, dimension(:,:), pointer :: my_sfc_field, my_sfc_field_ls
      logical :: my_in_log
 
-     nullify(levels_8,my_sfc_field)
+     nullify(levels_8,my_sfc_field, my_sfc_field_ls)
 
      ! Set return value
      status = VGD_ERROR
@@ -1274,17 +1314,36 @@ contains
      else
         my_sfc_field = VGD_MISSING
      endif
+     if (present(sfc_field_ls)) then
+        if( size(sfc_field_ls,dim=1) /= ni .or. size(sfc_field_ls,dim=2) /= nj )then
+           write(for_msg,*) 'in levels_withref, size of sfc_field_ls not the same as sfc_field'
+           call msg(MSG_ERROR,VGD_PRFX//for_msg)
+           return
+        endif
+     endif
      my_in_log = .false.
      if (present(in_log)) my_in_log = in_log
 
      ! Wrap call to level calculator at 64 bits
-     stat=diag_withref_8(self,ip1_list,levels_8,sfc_field=my_sfc_field,in_log=my_in_log)
-     if(stat==VGD_ERROR)then
-        if(associated(levels_8))deallocate(levels_8)
-        deallocate(my_sfc_field)
-        return
+     if (present(sfc_field_ls)) then
+        allocate(my_sfc_field_ls(ni,nj),stat=error)
+        if (error /= 0) then
+           write(for_msg,*) 'cannot allocate space for my_sfc_field_ls in levels_withref'
+           call msg(MSG_ERROR,VGD_PRFX//for_msg)
+           return
+        endif
+        my_sfc_field_ls=sfc_field_ls
+        stat=diag_withref_8(self,ip1_list,levels_8,sfc_field=my_sfc_field,in_log=my_in_log,sfc_field_ls=my_sfc_field_ls)
+        deallocate(my_sfc_field_ls)
+     else
+        stat=diag_withref_8(self,ip1_list,levels_8,sfc_field=my_sfc_field,in_log=my_in_log)
+        if(stat==VGD_ERROR)then
+           if(associated(levels_8))deallocate(levels_8)
+           deallocate(my_sfc_field)
+           return
+        endif
      endif
-     ! Write results back to 32 bits
+     ! Write results back to 32 bits     
      error = get_allocate('levels',levels,shape(levels_8),ALLOW_RESHAPE,'(in levels_withref)')
      if (error /= 0) then
         return
@@ -1346,7 +1405,7 @@ contains
    end function levels_withref_8
 
    integer function dpidpis_withref(self,ip1_list,dpidpis,sfc_field) result(status)
-      use utils, only: get_allocate
+      use vgrid_utils, only: get_allocate
       ! Given referent, compute physical levelling information from the vertical description
       type(vgrid_descriptor), intent(in) :: self                  !Vertical descriptor instance
       integer, dimension(:), intent(in) :: ip1_list               !Key of prototype field
@@ -1405,7 +1464,7 @@ contains
    end function dpidpis_withref
    
    integer function dpidpis_withref_8(self,ip1_list,dpidpis,sfc_field) result(status)
-      use utils, only: get_allocate
+      use vgrid_utils, only: get_allocate
       ! Given referent, compute physical levelling information from the vertical description
       type(vgrid_descriptor), intent(in) :: self                  !Vertical descriptor instance
       integer, dimension(:), intent(in) :: ip1_list               !Key of prototype field
@@ -1456,21 +1515,21 @@ contains
       return
    end function dpidpis_withref_8
 
-   integer function diag_withref_8(self,ip1_list,levels,sfc_field,in_log,dpidpis) result(status)
-      use utils, only: get_allocate
+   integer function diag_withref_8(self,ip1_list,levels,sfc_field,in_log,dpidpis,sfc_field_ls) result(status)
+      use vgrid_utils, only: get_allocate
       ! Given referent, compute physical levelling information from the vertical description
       type(vgrid_descriptor), intent(in) :: self                  !Vertical descriptor instance
       integer, target, dimension(:), intent(in) :: ip1_list               !Key of prototype field
       real*8, dimension(:,:,:), pointer :: levels                   !Physical level values
-      real*8, dimension(:,:), pointer, intent(in) :: sfc_field     !Surface field reference for coordinate [none]
+      real*8, dimension(:,:), optional, intent(in) :: sfc_field     !Surface field reference for coordinate [none]
+      real*8, dimension(:,:), optional, intent(in) :: sfc_field_ls  !Surface field large scale reference for coordinate [none]
       logical, optional, intent(in) :: in_log                     !Compute levels in ln() [.false.]
       logical, optional, intent(in) :: dpidpis                    !Compute partial derivative of hydrostatic pressure (pi) with
       !   respect to surface hydrostatic pressure(pis) [.false.]
       
       ! Local variables
       integer istat,ni,nj,nk,error
-      integer :: length(3)
-      type (c_ptr) :: ip1_list_CP ,levels_CP ,sfc_field_CP
+      type (c_ptr) :: ip1_list_CP ,levels_CP ,sfc_field_CP, sfc_field_ls_CP
       integer :: in_log_int, dpidpis_int
       logical :: my_dpidpis
 
@@ -1501,20 +1560,62 @@ contains
          dpidpis_int = 0
       endif
       
-      ! Set size of output and allocate space
-      ni = size(sfc_field,dim=1); nj = size(sfc_field,dim=2); nk = size(ip1_list)
-      length=(/ni, nj, nk/)
-      error = get_allocate("levels",levels,length,ALLOW_RESHAPE," (in diag_withref_8)")
-      if (error /= 0) then
-         if(associated(levels))deallocate(levels)
-         return
+      if (present(sfc_field)) then
+         ni = size(sfc_field,dim=1); nj = size(sfc_field,dim=2); nk = size(ip1_list)
+      else
+         if (is_valid(self,"ref_name_valid")) then
+            write(for_msg,*) 'reference field must be provided to diag_withref_8'
+            call msg(MSG_ERROR,VGD_PRFX//for_msg)
+            return
+         else
+            ni = 1; nj = 1; nk = size(ip1_list)
+         endif
       endif
-
+      
+      if (present(sfc_field_ls)) then
+         if(  ni /= size(sfc_field_ls,dim=1) .or. &
+              nj /= size(sfc_field_ls,dim=2) )then
+            write(for_msg,*) 'reference large scale field is not of same size has reference field'
+            call msg(MSG_ERROR,VGD_PRFX//for_msg)
+            return
+         endif
+      else
+         if (is_valid(self,"ref_namel_valid")) then
+            write(for_msg,*) 'reference large scale field must be provided to diag_withref_8'
+            call msg(MSG_ERROR,VGD_PRFX//for_msg)
+            return
+         endif
+      endif
+      if (associated(levels)) then
+         if (size(levels,dim=1) /= ni .or. size(levels,dim=2) /= nj .or. size(levels,dim=3) /= nk) then
+            if(ALLOW_RESHAPE)then
+               write(for_msg,*) 'Levels array size error - will be reallocated'
+               call msg(MSG_WARNING,VGD_PRFX//for_msg)
+               deallocate(levels)
+            else
+               write(for_msg,*) 'Levels array size error - will not reallocate since ALLOW_RESHAPE is set to false'
+               call msg(MSG_ERROR,VGD_PRFX//for_msg)
+               return
+            endif
+         endif
+      endif
+      if(.not. associated(levels) )then
+         allocate(levels(ni,nj,nk),stat=error)
+         if (error /= 0) then
+            write(for_msg,*) 'cannot allocate space for levels in diag_withref_8'
+            call msg(MSG_ERROR,VGD_PRFX//for_msg)
+            return
+         endif
+      endif
+      
       ip1_list_CP  = c_loc(ip1_list)
       levels_CP    = c_loc(levels(1,1,1))
-      sfc_field_CP = c_loc(sfc_field(1,1))
+      sfc_field_CP = C_NULL_PTR
+      if (present(sfc_field)) sfc_field_CP = c_loc(sfc_field(1,1))
+      sfc_field_ls_CP = C_NULL_PTR
+      if (present(sfc_field_ls)) sfc_field_ls_CP = c_loc(sfc_field_ls(1,1))
       
-      istat = f_diag_withref_8(self%cptr,ni,nj,nk,ip1_list_CP,levels_CP,sfc_field_CP,in_log_int,dpidpis_int)      
+      istat = f_diag_withref_8(self%cptr,ni,nj,nk,ip1_list_CP,levels_CP,sfc_field_CP,sfc_field_ls_CP,in_log_int,dpidpis_int)      
       if (istat /= VGD_OK) then
          if(my_dpidpis)then
             write(for_msg,*) 'error computing dpidpis in diag_withref_8'
@@ -1535,7 +1636,7 @@ contains
 !!! Write descriptors
    
    integer function write_desc(self,unit,format) result(status)     
-      use utils, only: up, get_allocate
+      use vgrid_utils, only: up, get_allocate
       ! Write descriptors to the requested file
       type(vgrid_descriptor), intent(in) :: self       !Vertical descriptor instance
       integer, intent(in) :: unit                      !File unit to write to
@@ -1590,7 +1691,7 @@ contains
    end function write_desc   
 
    integer function get_int(self,key,value,quiet) result(status)
-       use utils, only: up
+       use vgrid_utils, only: up
       ! Retrieve the value of the requested instance variable
       type(vgrid_descriptor), intent(in) :: self          !Vertical descriptor instance
       character(len=*), intent(in) :: key                 !Descriptor key to retrieve
@@ -1618,7 +1719,7 @@ contains
    end function get_int
  
    integer function get_int_1d(self,key,value,quiet) result(status)
-      use utils, only: get_allocate,up,get_error
+      use vgrid_utils, only: get_allocate,up,get_error
       ! Retrieve the value of the requested instance variable
       type(vgrid_descriptor), intent(in) :: self          !Vertical descriptor instance
       character(len=*), intent(in) :: key                 !Descriptor key to retrieve
@@ -1693,7 +1794,7 @@ contains
    end function get_int_1d
    
    integer function get_real(self,key,value,quiet) result(status)
-      use utils, only: up
+      use vgrid_utils, only: up
       ! Retrieve the value of the requested instance variable
       type(vgrid_descriptor), intent(in) :: self     !Vertical descriptor instance
       character(len=*), intent(in) :: key            !Descriptor key to retrieve
@@ -1725,7 +1826,7 @@ contains
   
 
    integer function get_real_1d(self,key,value,quiet) result(status)
-      use utils, only: get_allocate,up,get_error
+      use vgrid_utils, only: get_allocate,up,get_error
       ! Retrieve the value of the requested instance variable
       type(vgrid_descriptor), intent(in) :: self  !Vertical descriptor instance
       character(len=*), intent(in) :: key         !Descriptor key to retrieve
@@ -1812,7 +1913,7 @@ contains
    end function get_real_1d
    
    integer function get_real8(self,key,value,quiet) result(status)
-      use utils, only: up
+      use vgrid_utils, only: up
       type(vgrid_descriptor), intent(in) :: self  !Vertical descriptor instance
       character(len=*), intent(in) :: key         !Descriptor key to retrieve
       real(kind=8), target, intent(out) :: value  !Retrieved value
@@ -1844,7 +1945,7 @@ contains
    end function get_real8
 
    integer function get_real8_1d(self,key,value,quiet) result(status)
-      use utils, only: get_allocate,up,get_error
+      use vgrid_utils, only: get_allocate,up,get_error
       ! Wrapper function to C f_get_real8_1d
       type(vgrid_descriptor), intent(in) :: self     !Vertical descriptor instance
       character(len=*), intent(in) :: key            !Descriptor key to retrieve
@@ -1902,6 +2003,17 @@ contains
             error = int(get_error(key,my_quiet))
             return
          endif
+      case ('CC_M')
+         if (is_valid(self,"c_m_8_valid")) then
+            istat = get_int(self,'NL_M',nl_)
+            istat = get_allocate(key,value,nl_,ALLOW_RESHAPE,'(CC_M in get_real8_1d)')         
+            if (istat /= 0) return
+            value_CP = c_loc(value(1))
+            status = f_get_real8_1d(self%cptr,my_key//C_NULL_CHAR,value_CP,C_NULL_PTR,l_quiet)
+         else
+            error = int(get_error(key,my_quiet))
+            return
+         endif
       case ('CA_T')
          if (is_valid(self,"a_t_8_valid_get")) then
             istat = get_int(self,'NL_T',nl_)
@@ -1909,6 +2021,17 @@ contains
             if (istat /= 0) return
             value_CP = c_loc(value(1))
             status = f_get_real8_1d(self%cptr,my_key//C_NULL_CHAR,value_CP,C_NULL_PTR,l_quiet)            
+         else
+            error = int(get_error(key,my_quiet))
+            return
+         endif
+      case ('CC_T')
+         if (is_valid(self,"c_t_8_valid")) then
+            istat = get_int(self,'NL_T',nl_)
+            istat = get_allocate(key,value,nl_,ALLOW_RESHAPE,'(CC_T in get_real8_1d)')         
+            if (istat /= 0) return
+            value_CP = c_loc(value(1))
+            status = f_get_real8_1d(self%cptr,my_key//C_NULL_CHAR,value_CP,C_NULL_PTR,l_quiet)
          else
             error = int(get_error(key,my_quiet))
             return
@@ -1933,7 +2056,7 @@ contains
    end function get_real8_1d
 
    integer function get_real8_3d(self,key,value,quiet) result(status)
-      use utils, only: get_allocate,up
+      use vgrid_utils, only: get_allocate,up
       ! Retrieve the value of the requested instance variable
       type(vgrid_descriptor), intent(in) :: self  !Vertical descriptor instance
       character(len=*), intent(in) :: key         !Descriptor key to retrieve
@@ -1990,7 +2113,7 @@ contains
    end function get_real8_3d
    
    integer function get_char(self,key,value,quiet) result(status)
-      use utils, only: up
+      use vgrid_utils, only: up
       type(vgrid_descriptor), intent(in) :: self  !Vertical descriptor instance
       character(len=*), intent(in) :: key         !Descriptor key to retrieve
       character(len=*), intent(out) :: value      !Retrieved value
@@ -2022,11 +2145,13 @@ contains
       status = f_get_char(self%cptr, my_key//C_NULL_CHAR, my_char, l_quiet)
       select case(trim(my_key))
       case ('ETIK')
-         nchar=12
+         nchar=VGD_LEN_ETIK
       case ('NAME')
-         nchar=4
+         nchar=VGD_LEN_NAME
       case ('RFLD')
-         nchar=4
+         nchar=VGD_LEN_RFLD
+      case ('RFLS')
+         nchar=VGD_LEN_RFLS
       case DEFAULT
          if( .not. my_quiet)then
             write(for_msg,*) 'invalid key in call to get_char: ',trim(key)
@@ -2044,12 +2169,10 @@ contains
          value(i:i)=my_char(i)         
       enddo
       
-      status = VGD_OK
-      
    end function get_char
     
    integer function get_logical(self,key,value,quiet) result(status)
-      use utils, only: up
+      use vgrid_utils, only: up
       ! Retrieve the value of the requested instance variable
       type(vgrid_descriptor), intent(in) :: self          !Vertical descriptor instance
       character(len=*), intent(in) :: key                 !Descriptor key to retrieve
@@ -2085,7 +2208,7 @@ contains
 
 
    integer function put_int(self, key, value) result(status)
-      use utils, only : up
+      use vgrid_utils, only : up
       type(vgrid_descriptor), intent(inout) :: self !Vertical descriptor instance
       character(len=*), intent(in) :: key           !Descriptor key to set
       integer, target, intent(in) :: value          !Value to set
@@ -2098,7 +2221,7 @@ contains
    end function put_int
 
    integer function put_real8(self, key, value) result(status)
-      use utils, only : up
+      use vgrid_utils, only : up
       type(vgrid_descriptor), intent(inout) :: self !Vertical descriptor instance
       character(len=*), intent(in) :: key           !Descriptor key to set
       real(kind=8), target, intent(in) :: value     !Value to set
@@ -2111,8 +2234,30 @@ contains
       
    end function put_real8
 
+   integer function put_real8_3d(self, key, value) result(status)
+      use vgrid_utils, only : up
+      type(vgrid_descriptor), intent(inout) :: self !Vertical descriptor instance
+      character(len=*), intent(in) :: key           !Descriptor key to set
+      real(kind=8), dimension(:,:,:), pointer :: value !Value to set
+      type(c_ptr) :: my_value_CP
+      status = VGD_ERROR
+      print*,'(F_vgd) ERROR: in put_real8_3d, putint real8 3D array is not implemented in this librairy'
+      print*,'(F_vgd)        if you want to put the VGTB, you may do it by reconstructing a new '
+      print*,'(F_vgd)        vgrid_descriptor e.g. vgd_new(self,table_8)'
+      print*,'(F_vgd)        If you think you really need to vgd_put VGTB contact Andre PLante'
+      ! To silence the compiler warning
+      if(associated(value))then
+      endif
+      ! To silence the compiler warning
+      my_value_CP = c_loc(self%cptr)
+      ! To silence the compiler warning
+      if(key == "")then
+      endif
+      return     
+    end function put_real8_3d
+
    integer function put_char(self,key,value) result(status)
-      use utils, only: up,put_error
+      use vgrid_utils, only: up,put_error
       ! Set the value of the requested instance variable
       type(vgrid_descriptor), intent(in) :: self  !Descriptor instance
       character(len=*), intent(in) :: key         !Descriptor key to set
@@ -2174,6 +2319,85 @@ contains
       endif
       status = VGD_OK
    end function my_fstprm
-   
+
+   integer function get_ref (F_f,self,F_name_S,F_unit,prm) result(status)
+    
+    implicit none
+    
+    real, dimension(:,:), pointer, intent(inout) :: F_f
+    type(vgrid_descriptor), intent(in) :: self !Vertical descriptor instance
+    character(len=*) :: F_name_S
+    integer, intent(in) :: F_unit
+    type(FSTD_ext), intent(in) :: prm
+    
+    ! Local variables
+    integer :: sfc_key,fstinf,fstluk,ni,nj,nk,istat,match_ipig,ip1,ip2
+    type(FSTD_ext) :: prm_p0
+
+    ! Set error status
+    status = VGD_ERROR
+    
+    sfc_key = fstinf(F_unit,ni,nj,nk,prm%datev,prm%etiket,-1,prm%ip2,prm%ip3,' ',F_name_S)
+    if(sfc_key < 0)then
+       write(for_msg,*) 'cannot find ',F_name_S,' for :'
+       call msg(MSG_ERROR,VGD_PRFX//for_msg)
+       write(for_msg,*) 'datev=',prm%datev,' etiket=',prm%etiket,' ip2=',prm%ip2,' ip3=',prm%ip3
+       call msg(MSG_ERROR,VGD_PRFX//for_msg)
+       return
+    endif
+    istat=my_fstprm(sfc_key,prm_p0)
+    if(prm_p0%ni.ne.prm%ni.or.prm_p0%nj.ne.prm%nj)then
+       write(for_msg,*) 'horizontal grid mismatch for '//trim(F_name_S),ni,nj,' vs',prm%ni,prm%nj
+       call msg(MSG_ERROR,VGD_PRFX//for_msg)
+       return
+    endif
+    if ( vgd_get(self,"MIPG match !! IPs and IGs with records",match_ipig) == VGD_ERROR )then
+       write(for_msg,*) 'ERROR in get_ref with vgd_get on MIPG'
+       call msg(MSG_ERROR,VGD_PRFX//for_msg)
+       return
+    endif
+    if (match_ipig == 1) then
+       if ( vgd_get(self,"IP_1",ip1) == VGD_ERROR )then
+          write(for_msg,*) 'ERROR in get_ref with vgd_get on IP_1'
+          call msg(MSG_ERROR,VGD_PRFX//for_msg)
+          return
+       endif
+       if ( vgd_get(self,"IP_2",ip2) == VGD_ERROR )then
+          write(for_msg,*) 'ERROR in get_ref with vgd_get on IP_2'
+          call msg(MSG_ERROR,VGD_PRFX//for_msg)
+          return
+       endif
+       if (prm_p0%ig1 /= ip1 .or. prm_p0%ig2 /= ip2) then
+          write(for_msg,*) 'sfc_field ig1 ig2 do not correspond to the correct grid descriptor'
+          call msg(MSG_ERROR,VGD_PRFX//for_msg)
+          write(for_msg,'("   expecting (ip1,ip2)->(",i8,",",i8,"), got (ig1,ig2)->(",i8,",",i8,")")')&
+               ip1,ip2,prm_p0%ig1,prm_p0%ig2
+          call msg(MSG_ERROR,VGD_PRFX//for_msg)                            
+          return
+       endif
+    endif
+    if(associated(F_f))deallocate(F_f)
+    allocate(F_f(ni,nj),stat=istat)
+    if (istat /= 0) then
+       nullify(F_f)
+       write(for_msg,*) 'cannot allocate space in get_ref for ',trim(F_name_S) 
+       call msg(MSG_ERROR,VGD_PRFX//for_msg)
+       return
+    endif
+    istat = fstluk(F_f,sfc_key,ni,nj,nk)
+    if(istat < 0 )then
+       write(for_msg,*) 'problem with fstluk '//trim(F_name_S)//' in get_ref'
+       call msg(MSG_ERROR,VGD_PRFX//for_msg)
+       deallocate(F_f)
+       return
+    endif
+    if ( trim(F_name_S) == 'P0' .or. &
+         trim(F_name_S) == 'P0LS') F_f = F_f*100. !convert mb to Pa
+    
+    ! Set error status
+    status = VGD_OK
+
+ end function get_ref
+  
 end module vGrid_Descriptors
 
