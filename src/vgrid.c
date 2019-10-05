@@ -85,6 +85,7 @@ static int c_encode_vert_0001(vgrid_descriptor **self,int nk);
 static int c_encode_vert_1001(vgrid_descriptor **self,int nk);
 static int c_encode_vert_1002(vgrid_descriptor **self,int nk);
 static int c_encode_vert_2001(vgrid_descriptor **self,int nk);
+static int c_encode_vert_4001(vgrid_descriptor **self,int nk);
 static int c_encode_vert_5001(vgrid_descriptor **self,int nk);
 static int c_encode_vert_5002_5003_5004_5005(vgrid_descriptor **self, char update);
 static int c_encode_vert_5100(vgrid_descriptor **self, char update);
@@ -290,9 +291,9 @@ void c_hypsometric (float *pkp, float pk, float Tk, float gammaT, float zk, floa
   //
   static float epsilon = 1.e-6;
   if( gammaT > -epsilon && gammaT < epsilon ) {
-    *pkp = (float) pk * exp( -VGD_GRAV/(VGD_RGASD*Tk) * (zkp-zk) );
+    *pkp = (float) (pk * exp( -VGD_GRAV/(VGD_RGASD*Tk) * (zkp-zk) ));
   } else {
-    *pkp = (float) pk * exp( -VGD_GRAV/(VGD_RGASD*gammaT) * log(gammaT*(zkp-zk)/Tk+1.) );
+    *pkp = (float) (pk * exp( -VGD_GRAV/(VGD_RGASD*gammaT) * log(gammaT*(zkp-zk)/Tk+1.) ));
   }
 }
 
@@ -323,7 +324,10 @@ static int c_set_stda_layer(int ind, float Tk, float pk, float *zk, float *zkp, 
     printf("(Cvgd) ERROR in c_set_stda_layer, maximum layer excedded\n");    
     return(VGD_ERROR);
   }
-  *zero_lapse_rate = stda76_tgrad[ind] > -epsilon && stda76_tgrad[ind] < epsilon ;
+  *zero_lapse_rate = 0;
+  if(stda76_tgrad[ind] > -epsilon && stda76_tgrad[ind] < epsilon){
+    *zero_lapse_rate = 1;
+  }   
   *zk  = stda76_zgrad[ind];
   *zkp = stda76_zgrad[ind+1];
   *gammaT = stda76_tgrad[ind];
@@ -368,7 +372,7 @@ int c_stda76_temp_from_press(vgrid_descriptor *self, int *i_val, int nl, float *
       // Current pressure level is above current stda layer
       Tk = Tk + gammaT * (zkp - zk);
       pk = pkp;
-      ind = ind++;
+      ind++;
       if( c_set_stda_layer( ind, Tk, pk, &zk, &zkp, &gammaT, &pkp, &zero_lapse_rate) == VGD_ERROR){
 	return(VGD_ERROR);
       }
@@ -377,7 +381,7 @@ int c_stda76_temp_from_press(vgrid_descriptor *self, int *i_val, int nl, float *
       //hgts_stda = (float) zk - (VGD_RGASD*Tk)/VGD_GRAV * log(levs[k]/pk);
       temp[k] = Tk;
     } else {
-      hgts_stda = (float) zk + Tk/gammaT * ( exp(-(VGD_RGASD*gammaT)/VGD_GRAV * log(levs[k]/pk )) - 1.f );
+      hgts_stda = (float) (zk + Tk/gammaT * ( exp(-(VGD_RGASD*gammaT)/VGD_GRAV * log(levs[k]/pk )) - 1.f ));
       temp[k] = Tk + gammaT*(hgts_stda-zk);
     }
   }
@@ -429,7 +433,7 @@ int c_stda76_temp_pres_from_heights(vgrid_descriptor *self, int *i_val, int nl, 
     while( levs[k] >= zkp ){
       Tk = Tk + gammaT * (zkp - zk);
       pk = pkp;
-      ind = ind++;
+      ind++;
       if( c_set_stda_layer( ind, Tk, pk, &zk, &zkp, &gammaT, &pkp, &zero_lapse_rate) == VGD_ERROR){
 	return(VGD_ERROR);
       }
@@ -1394,10 +1398,10 @@ static void c_vgd_free_abci(vgrid_descriptor **self) {
     } else {
       FREE((*self)->c_w_8);
     }
-    if( (*self)->ip1_t == (*self)->ip1_m || (*self)->ip1_t == (*self)->ip1_t ) {
+    if( (*self)->ip1_w == (*self)->ip1_m || (*self)->ip1_w == (*self)->ip1_t ) {
       (*self)->ip1_t = NULL;
     } else {
-      FREE((*self)->ip1_t);
+      FREE((*self)->ip1_w);
     }
     
     FREE((*self)->a_m_8);
@@ -4302,8 +4306,8 @@ static int c_vgrid_genab_5100(float *hybuser, int nk, int *nl_m, int *nl_t, floa
       c_t_8[k] = 0.5 * ( c_m_8[k+1] + c_m_8[k] );      
     }else{
       lamba_8 = fmin(1., fmax(0.,(zeta_8- zeta1_8)*pr1));
-      rcoefL  = (float) rcoef2-(rcoef2-rcoef1)*lamba_8;
-      rcoef   = (float) rcoef4-(rcoef4-rcoef3)*lamba_8;
+      rcoefL  = (float) (rcoef2-(rcoef2-rcoef1)*lamba_8);
+      rcoef   = (float) (rcoef4-(rcoef4-rcoef3)*lamba_8);
       b_t_8[k] = pow(lamba_8, rcoef);
       c_t_8[k] = pow(lamba_8, rcoefL) - b_t_8[k];
     }
@@ -4442,10 +4446,10 @@ static int c_vgrid_genab_21001(float *hybuser, int nk, int *nl_m, int *nl_t, flo
   pr1 = 1. / hybuser[0];
   for( k = 0; k < nk; k++ ){
     lamda_8 = ( hybuser[0] - hybuser[k] ) * pr1;
-    rcoef   = (float) my_rcoef4 - ( my_rcoef4 - my_rcoef3 ) * lamda_8;
+    rcoef   = (float) (my_rcoef4 - ( my_rcoef4 - my_rcoef3 ) * lamda_8);
     a_m_8[k] = hybuser[k];
     b_m_8[k] = pow(lamda_8, rcoef);
-    rcoef   = (float) rcoef2 - ( rcoef2 - rcoef1 ) * lamda_8;
+    rcoef   = (float) (rcoef2 - ( rcoef2 - rcoef1 ) * lamda_8);
     c_m_8[k] = pow(lamda_8, rcoef) - b_m_8[k];
     //Since rcoef* may be big we limit B and C to avoid floating point overflow
     if(b_m_8[k] < 1.e-16){
@@ -4638,10 +4642,10 @@ static int c_vgrid_genab_21002(float *hybuser, int nk, int *nl_m, int *nl_t, int
   pr1 = 1. / hybuser[0];
   for( k = 0; k < nk; k++ ){
     lamda_8 = ( hybuser[0] - hybuser[k] ) * pr1;
-    rcoef   = (float) my_rcoef4 - ( my_rcoef4 - my_rcoef3 ) * lamda_8;
+    rcoef   = (float) (my_rcoef4 - ( my_rcoef4 - my_rcoef3 ) * lamda_8);
     a_m_8[k] = hybuser[k];
     b_m_8[k] = pow(lamda_8, rcoef);
-    rcoef   = (float) rcoef2 - ( rcoef2 - rcoef1 ) * lamda_8;
+    rcoef   = (float) ( rcoef2 - ( rcoef2 - rcoef1 ) * lamda_8);
     c_m_8[k] = pow(lamda_8, rcoef) - b_m_8[k];
     //Since rcoef* may be big we limit B and C to avoid floating point overflow
     if(b_m_8[k] < 1.e-16){
@@ -6264,7 +6268,7 @@ int Cvgd_write_desc (vgrid_descriptor *self, int unit) {
 }
 
 int Cvgd_standard_atmosphere_1976_temp(vgrid_descriptor *self, int *i_val, int nl, float *temp){
-  int ier, vcode;
+  int vcode;
   float *pres;
   pres = malloc( nl * sizeof(float) );
   if(! pres){
@@ -6276,7 +6280,9 @@ int Cvgd_standard_atmosphere_1976_temp(vgrid_descriptor *self, int *i_val, int n
     return(VGD_ERROR);
   }
   
-  ier = Cvgd_get_int(self, "VCOD", &vcode, 1);
+  if( Cvgd_get_int(self, "VCOD", &vcode, 1) == VGD_ERROR ){
+    return(VGD_ERROR);
+  };
   if(! strcmp((*self).ref_name,"ME  ") || vcode == 4001 ){
     if( c_stda76_temp_pres_from_heights(self, i_val, nl, temp, pres, NULL, NULL) == VGD_ERROR ){
       return(VGD_ERROR);
