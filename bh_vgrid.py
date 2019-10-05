@@ -13,29 +13,24 @@ def _init(b):
    environ["BH_PACKAGE_CONTROL_DIR"] = "%(BH_HERE_DIR)s" % environ
    environ["SCRIPT_NAME"] = __file__+" -m "+b.mode+" -p "+b.platform % environ   
 
-   if b.mode == "intel":
-      environ["BH_MAKE"] = 'make'
-   elif b.mode == "xlf13":
-      environ["BH_MAKE"] = 'gmake' 
-
 def _make(b):
    
     b.shell("""
             set -e
             cd ${BH_PULL_SOURCE}
-            REMOTE=$(git remote -v | grep fetch | awk '{print $2}')
+            REMOTE=$(git remote -v | grep fetch | grep gitlab.com | awk '{print $2}')
             (
              CONTROL_DIR=${BH_PACKAGE_CONTROL_DIR}/${BH_PROJECT_NAME}/.ssm.d
              mkdir -p ${CONTROL_DIR}
              cp ${BH_TOP_BUILD_DIR}/post-install ${CONTROL_DIR}
              CONTROL_FILE=${CONTROL_DIR}/control.template
              echo \"Package: ${BH_PACKAGE_NAME}\"                                                                  > ${CONTROL_FILE}
-             echo \"Version: x\"                                                                                  >> ${CONTROL_FILE}
-             echo \"Platform: x\"                                                                                 >> ${CONTROL_FILE}
+             echo \"Version: ${BH_PULL_SOURCE_GIT_BRANCH}\"                                                       >> ${CONTROL_FILE}
+             echo \"Platform: ${ORDENV_PLAT}\"                                                                    >> ${CONTROL_FILE}
              echo \"Maintainer: cmdn (A. Plante)\"                                                                >> ${CONTROL_FILE}
              echo \"BuildInfo: git clone ${REMOTE}\"                                                              >> ${CONTROL_FILE}
              echo \"           cd in new directory created\"                                                      >> ${CONTROL_FILE}
-             echo \"           git checkout ${BH_PULL_SOURCE_GIT_BRANCH}"\                                        >> ${CONTROL_FILE}
+             echo \"           git checkout -b temp ${BH_PULL_SOURCE_GIT_BRANCH}"\                                >> ${CONTROL_FILE}
              echo \"           cd lib\"                                                                           >> ${CONTROL_FILE}
              echo \"           make\"                                                                             >> ${CONTROL_FILE}
              echo \"Vertical grid descriptors package\"                                                           >> ${CONTROL_FILE}

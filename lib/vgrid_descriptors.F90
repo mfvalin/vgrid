@@ -1,3 +1,21 @@
+! * libdescrip - Vertical grid descriptor library for FORTRAN programming
+! * Copyright (C) 2016  Direction du developpement des previsions nationales
+! *                     Centre meteorologique canadien
+! *
+! * This library is free software; you can redistribute it and/or
+! * modify it under the terms of the GNU Lesser General Public
+! * License as published by the Free Software Foundation,
+! * version 2.1 of the License.
+! *
+! * This library is distributed in the hope that it will be useful,
+! * but WITHOUT ANY WARRANTY; without even the implied warranty of
+! * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+! * Lesser General Public License for more details.
+! *
+! * You should have received a copy of the GNU Lesser General Public
+! * License along with this library; if not, write to the
+! * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+! * Boston, MA 02111-1307, USA.
 module vGrid_Descriptors
 
   ! Autors : Ron MacTaggart-Cowan and Andre Plante
@@ -247,7 +265,7 @@ contains
 
       ! Internal variables
       integer :: istat,error,lkind,mykind,myversion,lversion,count,i,myip1,myip2
-      integer :: fstinf,fstinl,fstluk,fstprm,ni,nj,nk,swa,lng,ubc,dltf,extra1,extra2,extra3
+      integer :: fstinl,fstluk,fstprm,ni,nj,nk,swa,lng,ubc,dltf,extra1,extra2,extra3
       integer :: nii,njj,nkk
       integer, dimension(MAX_DESC_REC) :: keyList
       type(FSTD_ext) :: var
@@ -593,7 +611,7 @@ contains
       integer, optional, dimension(:) :: ip1_m,ip1_t    !Level ID (IP1) for momentum(m),thermo(t) levels
 
       ! Local variables
-      integer :: error,nn,ig1,ig2,ig3,ig4,k
+      integer :: error
       logical :: missingInput
       character(len=10) :: cvcode
 
@@ -822,7 +840,7 @@ contains
       integer, dimension(:), pointer :: ip1_m,ip1_t
       real, dimension(:), pointer :: hybm,hybt
       real*8, dimension(:), pointer :: a_m_8,b_m_8,a_t_8,b_t_8
-      logical :: gen_ok,errorInput=.false.
+      logical :: errorInput=.false.
 
       nullify(ip1_m,ip1_t,hybm,hybt,a_m_8,b_m_8,a_t_8,b_t_8)
 
@@ -1169,7 +1187,7 @@ contains
     logical, optional, intent(in) :: quiet              !Do not print massages    
     
     ! Local variables
-    integer :: error,level_msg
+    integer :: level_msg
     logical :: my_quiet
 
     ! Set error status
@@ -1535,7 +1553,7 @@ contains
     logical, optional, intent(in) :: quiet      !Do not print massages
 
     ! Internal Variables
-    integer :: istat,level_msg
+    integer :: level_msg
     logical :: my_quiet
 
     ! Set error status
@@ -1795,7 +1813,7 @@ contains
      logical, intent(in), optional :: quiet        !Do not generate messages
 
      ! Local variables
-     integer :: error,level_msg
+     integer :: level_msg
      logical :: my_quiet
      
     ! Set error status
@@ -1906,7 +1924,6 @@ contains
     integer, dimension(:), pointer :: value             !Value to set
 
     ! Local variables
-    integer :: error
     
     ! Set error status
     status = VGD_ERROR
@@ -1961,7 +1978,6 @@ contains
     real, dimension(:), pointer :: value !Value to set
 
     ! Local variables
-    integer :: error
 
     ! Set error status
     status = VGD_ERROR
@@ -2060,7 +2076,6 @@ contains
     real(kind=8), dimension(:), pointer :: value !Value to set
 
     ! Local variables
-    integer :: error
     
     ! Set error status
     status = VGD_ERROR
@@ -2258,13 +2273,11 @@ contains
     logical, intent(in), optional :: convip_L
 
     ! Internal variables
-    integer :: my_stdout,stat,nk,k,kind
+    integer :: my_stdout,nk,k,kind
     character(len=64) :: hr
-    character(len=VGD_LEN_NAME) :: name
     logical :: my_convip_L
     real :: pres,height
     character(len=1) :: null_S
-    character(len=10) :: kind_S
 
     ! Set error status
     status = VGD_ERROR
@@ -2438,8 +2451,7 @@ contains
     integer, intent(in) :: vcode
 
     ! Internal variables
-    integer :: stat
-    character(len=64) :: hr,retour
+    character(len=64) :: hr
 
     ! Set error status
     status = VGD_ERROR
@@ -2622,7 +2634,7 @@ contains
     character(len=1) :: blk_S
     integer :: error,ig1,ig2,ig3,i
     character(len=1) :: grtyp
-    logical :: construct,multiple_grids,my_in_log
+    logical :: multiple_grids,my_in_log
     type(vgrid_descriptor) :: gd
     type(FSTD_ext) :: var
 
@@ -2952,7 +2964,7 @@ contains
 
      ! Local variables
      real*8 :: my_sfc_field_8
-     integer :: error,stat
+     integer :: stat
 
      ! Set return value
      status = VGD_ERROR
@@ -3540,7 +3552,7 @@ contains
      type(vgrid_descriptor), intent(inout) :: self      !Vertical descriptor instance
 
      ! Local variables
-     integer :: nn,ip1,nk,k,ind,error
+     integer :: nn,nk,k,ind,error
      integer, parameter :: skip=1
 
      ! Set error status
@@ -3916,7 +3928,7 @@ contains
     type(vgrid_descriptor), intent(inout) :: self  !Vertical descriptor instance
 
     ! Local variables
-    integer :: skip,nj,nk,k,ind,istat
+    integer :: skip,k,ind,istat,nk
      
     ! Set error status
     status = VGD_ERROR
@@ -4303,7 +4315,7 @@ contains
     integer, intent(in) :: fstkey               !Key from FST file record
     type(FSTD_ext) :: record                    !Record information
     ! Local variables
-    integer :: error,ni,nj,nk
+    integer :: error
     integer, external :: fstprm,fstinf
     real*8 :: nhours
     status = VGD_ERROR
@@ -4339,7 +4351,7 @@ contains
     logical, intent(in) :: in_log                       !Compute level values in ln()
 
     ! Internal variables
-    integer :: i,j,error,nk
+    integer :: i,j,nk
     real*8, dimension(size(ip1_list)) :: aa_8,bb_8
     logical :: found
 
@@ -4387,7 +4399,7 @@ contains
     logical, intent(in) :: in_log                       !Compute level values in ln()
 
     ! Internal variables
-    integer :: i,j,error,nk
+    integer :: i,j,nk
     real*8, dimension(size(ip1_list)) :: aa_8,bb_8
     logical :: found
 
@@ -4483,7 +4495,7 @@ contains
     logical, intent(in) :: dpidpis                      !Compute partial derivative of hydrostatic pressure (pi) with
                                                         !   respect to surface hydrostatic pressure(pis)
     ! Internal variables
-    integer :: i,j,error,nk
+    integer :: i,j,nk
     real*8, dimension(size(ip1_list)) :: aa_8,bb_8
     logical :: found
 
@@ -4546,7 +4558,7 @@ contains
                                                         !   respect to surface hydrostatic pressure(pis)
 
     ! Internal variables
-    integer :: i,j,error,nk,kind
+    integer :: i,j,nk,kind
     real*8, dimension(size(sfc_field,dim=1),size(sfc_field,dim=2)) :: s_8
     real*8, dimension(size(ip1_list)) :: aa_8,bb_8
     real :: pppp
@@ -4633,7 +4645,7 @@ contains
     ! Local variables
     integer, dimension(MAX_DESC_REC) :: KeyList,Ip1List
     real,    dimension(MAX_DESC_REC) :: PresList
-    integer :: fstinl,count,error,ni,nj,nk,i,j,k,m,nip1,nb,itmp,imin
+    integer :: fstinl,count,error,ni,nj,nk,i,j,k,m,nip1,nb
     integer :: kind,user_kind,valid_kind
     integer, parameter :: nb_kind=100
     integer, dimension(0:nb_kind) :: num_in_kind
@@ -4787,20 +4799,16 @@ contains
     !
     ! Local variables
     integer, parameter :: nmax=1000
-    integer, dimension(nmax) :: liste
-    integer :: fstinl,fstinf,infon,fstprm,fstluk,fnom,read_decode_hyb,hyb_to_pres,eta_to_pres,&
+    integer :: fstinl,fstinf,fstprm,fstluk,fnom,read_decode_hyb,hyb_to_pres,eta_to_pres,&
          sigma_to_pres,etasef_to_pres 
     external  fstinl,fstinf,fstprm,fstluk,fnom,read_decode_hyb,hyb_to_pres,eta_to_pres,&
          sigma_to_pres,etasef_to_pres
     
-    integer :: ier,nvar,error,origkind,istat
+    integer :: ier,error,origkind,istat
     integer,dimension(:),pointer :: ip1
-    real :: x1
     real,dimension(:),pointer :: hyb,hybm
-    real*8 :: ptop_8
-    real, dimension(:,:),allocatable :: work
-    integer :: nia,nja,nka,ni1,nj1,nk1,i,j,k,ni,nj,nk,m,n
-    integer :: e1_key,hy_key,pt_key,p0_key,xx_key
+    integer :: nia,nja,nka,ni1,nj1,nk1,k,ni,nj,nk
+    integer :: e1_key,hy_key,pt_key
     integer :: datev, dateo, deet, ipas, ip1a, ip2a, ip3a, &
          ig1a, ig2a, ig3a, ig4a, bit, datyp, &
          swa, lng, dlf, ubc, ex1, ex2, ex3, kind

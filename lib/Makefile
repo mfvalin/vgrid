@@ -1,4 +1,8 @@
-include setup.mk
+ifeq ($(BASE_ARCH),$(EC_ARCH))
+   $(info ERROR: please setup the compilation environment by typing the folowing:)
+   $(info . setup.dot or . setup_gpsc.dot)
+   $(error )
+endif                                                                                                                                                           
 
 # Set default target
 default: lib
@@ -7,12 +11,12 @@ default: lib
 %.o : %.mod
 
 # Define suffix rules
-.SUFFIXES: .f .ftn90 .o
-.ftn90.o:
-	. ssmuse-sh -d $(HPCS_BASE) -d $(HPCS_COMP) -d $(RPN_LIB);\
-	s.compile -includes . $(MY_INCLUDE_PATH) $(INCLUDE_PATH) -optf =$(FFLAGS) -src $<
+.SUFFIXES: .F90 .o
 
-OBJECTS = vgrid_descriptors.o vgrid_genab_1001.o vgrid_genab_1002_5001.o vgrid_genab_1004.o vgrid_genab_2001.o vgrid_genab_5002.o utils.o msg.o
+%.o: %.F90
+	s.f90 -c $(MY_FFLAGS) -lrmn $<
+
+OBJECTS = vgrid_descriptors.o vgrid_genab_1001.o vgrid_genab_1002_5001.o vgrid_genab_1004.o vgrid_genab_2001.o vgrid_genab_5002.o utils.o
 
 all: Makefile.dep.mk $(OBJECTS)
 
@@ -22,11 +26,10 @@ lib: all
 	ar cru libdescrip.a $(OBJECTS)
 
 ssm:
-	. ssmuse-sh -d $(HPCS_BASE) -d $(HPCS_COMP) -d $(RPN_LIB) ;\
-	../bh_vgrid.py --host ${BH_HOST} -p $(ORDENV_PLAT) -m $(BH_MODE) -v BH_PULL_SOURCE=$(PWD)/.. -v BH_PULL_SOURCE_GIT_BRANCH=$(BH_PULL_SOURCE_GIT_BRANCH) -v BH_PACKAGE_VERSION=$(BH_PULL_SOURCE_GIT_BRANCH)-$${COMP_ARCH} ;\
+	../bh_vgrid.py --host ${BH_HOST} -p $(ORDENV_PLAT) -m $(BH_MODE) -v BH_MAKE=$(BH_MAKE) -v BH_PULL_SOURCE=$(PWD)/.. -v BH_PULL_SOURCE_GIT_BRANCH=$(BH_PULL_SOURCE_GIT_BRANCH) -v BH_PACKAGE_VERSION=$(BH_PULL_SOURCE_GIT_BRANCH)-$(COMP_ARCH) --local;\
 
 clean:
-	rm -f *.f90 *.o *.mod lib*.a
+	rm -f *.o *.mod lib*.a
 
 distclean: clean
 

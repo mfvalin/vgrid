@@ -1,3 +1,21 @@
+! * libdescrip - Vertical grid descriptor library for FORTRAN programming
+! * Copyright (C) 2016  Direction du developpement des previsions nationales
+! *                     Centre meteorologique canadien
+! *
+! * This library is free software; you can redistribute it and/or
+! * modify it under the terms of the GNU Lesser General Public
+! * License as published by the Free Software Foundation,
+! * version 2.1 of the License.
+! *
+! * This library is distributed in the hope that it will be useful,
+! * but WITHOUT ANY WARRANTY; without even the implied warranty of
+! * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+! * Lesser General Public License for more details.
+! *
+! * You should have received a copy of the GNU Lesser General Public
+! * License along with this library; if not, write to the
+! * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+! * Boston, MA 02111-1307, USA.
 !-------------------------------------- LICENCE BEGIN ------------------------------------
 !Environment Canada - Atmospheric Science and Technology License/Disclaimer, 
 !                     version 3; Last Modified: May 7, 2008.
@@ -13,100 +31,103 @@
 !if not, you can write to: EC-RPN COMM Group, 2121 TransCanada, suite 500, Dorval (Quebec), 
 !CANADA, H9P 1J3; or send e-mail to service.rpn@ec.gc.ca
 !-------------------------------------- LICENCE END --------------------------------------
-module vdescript_1001
+module vdescript_2001
 
   implicit none
   private
 
   ! Define class variables
-#include "vgrid.hf"
-
+      
   ! Define and publicize interfaces
-  public :: vgrid_genab_1001
+  public :: vgrid_genab_2001
   interface reallocate
      module procedure PRIV_reallocate4
      module procedure PRIV_reallocate8
      module procedure PRIV_reallocateI
   end interface
 
+#include "vgrid.hf"
+
 contains
-
-   subroutine vgrid_genab_1001 (F_siguser,F_sig,F_a_8,F_b_8,F_ip1,F_err)
-
-      !    Using sigma coordinate generate A=0 and B=convip(...,F_siguser,...)
+   
+   subroutine vgrid_genab_2001 (F_pres,F_a_8,F_b_8,F_err,ip1)
+      
+      !    Using pres coordinate generate A=0 and B=convip(...,F_pres,...)
       
       implicit none
       !      
       ! Arguments
       integer, intent(out) :: F_err
-      real, dimension(:), intent(in) :: F_siguser           ! user specification for vertical layering sigma
-      real, dimension(:), pointer :: F_sig                  ! model sigma values (cannot be normalides)
-      real*8, dimension(:), pointer :: F_a_8, F_b_8         ! model As and Bs
-      integer, dimension(:), pointer :: F_ip1               ! ip1 values
-      
+      real, dimension(:), intent(in) :: F_pres    ! user specification for vertical layering eta
+      real*8, dimension(:), pointer :: F_a_8, F_b_8 ! model As and Bs
+      integer, dimension(:), pointer, optional :: ip1 ! ip1 value
+
       ! Local variables
-      integer :: k,i, status, nk, kind
-      logical :: monotone,wrongsig
+      integer :: k, status, nk
+      logical :: monotone=.true.,wrongsig=.false.
       character*16 dumc_S
 
       !     __________________________________________________________________
-
-      monotone=.true.
-      wrongsig=.false.
-
+      
       F_err = VGD_ERROR
 
       ! Set size of the problem
-      nk = size(F_siguser)
+      nk = size(F_pres)
       
       ! Check and allocate as required
-      status = reallocate(F_sig,1,nk)
-      if (status /= VGD_OK) return
       status = reallocate(F_a_8,1,nk)
       if (status /= VGD_OK) return
       status = reallocate(F_b_8,1,nk)
       if (status /= VGD_OK) return
-      status = reallocate(F_ip1,1,nk)      
       !
-      if(F_siguser(nk).ne.1.d0)then
+      if(F_pres(1).eq.0.d0)then
          wrongsig = .true.
-         write(for_msg,'(" ===> WRONG SPECIFICATION OF SIGMA VERTICAL LEVELS: SIGMA(NK) MUST BE 1.0")')
+         write(for_msg,1000)
          call msg(MSG_ERROR,VGD_PRFX//for_msg)
       endif
       do k=2, nk
-         if (F_siguser(k).le.F_siguser(k-1))monotone = .false.
+         if (F_pres(k).le.F_pres(k-1))monotone = .false.
       end do
       if(.not.monotone)then
          wrongsig = .true.
-         write(for_msg,'(" ===> WRONG SPECIFICATION OF SIGMA VERTICAL LEVELS: LEVELS MUST BE MONOTONICALLY INCREASING")')
+         write(for_msg,1003)
          call msg(MSG_ERROR,VGD_PRFX//for_msg)
       endif
       if (wrongsig) then
-         write(for_msg,'("      Current choice:")')
+         write(for_msg,1002)
          call msg(MSG_ERROR,VGD_PRFX//for_msg)
          do k=1, nk
-            write(for_msg,*) F_siguser(k),k
-            call msg(MSG_ERROR,VGD_PRFX//for_msg)
+            write(for_msg,*) F_pres(k),k
+            call msg(MSG_ERROR,VGD_PRFX//for_msg)               
          end do
          return
       endif
       !
       do k=1,nk
-         call convip(i,F_siguser (k),1   , 2,dumc_S,.false.)
-         call convip(i,F_sig(k)     ,kind,-1,dumc_S,.false.)         
-         F_b_8(k)=F_sig(k)
-         F_ip1(k)=i
+         F_b_8(k)=0.0
+         F_a_8(k)=F_pres(k)*100.d0
       end do
-      F_a_8=0.d0
+      !
+      if(present(ip1))then
+         status = reallocate(ip1,1,nk)
+         if (status /= VGD_OK) return
+         do k=1,nk
+            call convip(ip1(k),F_pres(k),2,2,dumc_S,.false.)
+         enddo
+      endif
       !
       F_err = VGD_OK
+      !
       return
 
-1001  format (/' ===> WRONG SPECIFICATION OF SIGMA VERTICAL LEVELS:'/&
+1000  format (/' ===> WRONG SPECIFICATION OF PRESSURE VERTICAL LEVELS:'/&
+           '      eta(NK) MUST BE GREATER THAN 0.0')
+      
+1003  format (/' ===> WRONG SPECIFICATION OF PRESSURE VERTICAL LEVELS:'/&
            '      LEVELS MUST BE MONOTONICALLY INCREASING')
 1002  format (/'      Current choice:')
 
-   end subroutine vgrid_genab_1001
+   end subroutine vgrid_genab_2001
    
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  function PRIV_reallocate4(v,low,high) result(status)
@@ -123,15 +144,15 @@ contains
     if (associated(v)) then
        deallocate(v,stat=check)
        if (check /= 0) then
-          write(for_msg,*) 'Error in deallocate() from vdescript_1001::reallocate()'
-          call msg(MSG_ERROR,VGD_PRFX//for_msg)
+          write(for_msg,*) 'in deallocate() from vdescript_2001::reallocate()'
+          call msg(MSG_ERROR,VGD_PRFX//for_msg)          
           return
        endif
     endif
     allocate(v(low:high),stat=check)
     if (check /= 0) then
-       write(for_msg,*) 'Error in allocate() from vdescript_1001::reallocate()'
-       call msg(MSG_ERROR,VGD_PRFX//for_msg)
+       write(for_msg,*) 'in allocate() from vdescript_2001::reallocate()'
+       call msg(MSG_ERROR,VGD_PRFX//for_msg)  
        return
     endif
     status = VGD_OK
@@ -152,15 +173,15 @@ contains
     if (associated(v)) then
        deallocate(v,stat=check)
        if (check /= 0) then
-          write(for_msg,*) 'Error in deallocate() from vgrid_genab_1001:reallocate()'
-          call msg(MSG_ERROR,VGD_PRFX//for_msg)
+          write(for_msg,*) 'in deallocate() from vgrid_genab_2001:reallocate()'
+          call msg(MSG_ERROR,VGD_PRFX//for_msg) 
           return
        endif
     endif
     allocate(v(low:high),stat=check)
     if (check /= 0) then
-       write(for_msg,*) 'Error in allocate() from vgrid_genab_1001::reallocate()'
-       call msg(MSG_ERROR,VGD_PRFX//for_msg)
+       write(for_msg,*) 'in allocate() from vgrid_genab_2001::reallocate()'
+       call msg(MSG_ERROR,VGD_PRFX//for_msg)        
        return
     endif
     status = VGD_OK
@@ -183,14 +204,14 @@ contains
     if (associated(v)) then
        deallocate(v,stat=check)
        if (check /= 0) then
-          write(for_msg,*) 'Error in deallocate() from vdescript_1001::reallocate()'
+          write(for_msg,*) 'Error in deallocate() from vdescript_2001::reallocate()'
           call msg(MSG_ERROR,VGD_PRFX//for_msg)
           return
        endif
     endif
     allocate(v(low:high),stat=check)
     if (check /= 0) then
-       write(for_msg,*) 'Error in allocate() from vdescript_1001::reallocate()'
+       write(for_msg,*) 'Error in allocate() from vdescript_2001::reallocate()'
        call msg(MSG_ERROR,VGD_PRFX//for_msg)
        return
     endif
@@ -198,5 +219,5 @@ contains
     return
   end function PRIV_reallocateI
 
-end module vdescript_1001
+end module vdescript_2001
 

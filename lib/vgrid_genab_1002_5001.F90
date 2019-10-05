@@ -1,3 +1,21 @@
+! * libdescrip - Vertical grid descriptor library for FORTRAN programming
+! * Copyright (C) 2016  Direction du developpement des previsions nationales
+! *                     Centre meteorologique canadien
+! *
+! * This library is free software; you can redistribute it and/or
+! * modify it under the terms of the GNU Lesser General Public
+! * License as published by the Free Software Foundation,
+! * version 2.1 of the License.
+! *
+! * This library is distributed in the hope that it will be useful,
+! * but WITHOUT ANY WARRANTY; without even the implied warranty of
+! * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+! * Lesser General Public License for more details.
+! *
+! * You should have received a copy of the GNU Lesser General Public
+! * License along with this library; if not, write to the
+! * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+! * Boston, MA 02111-1307, USA.
 !-------------------------------------- LICENCE BEGIN ------------------------------------
 !Environment Canada - Atmospheric Science and Technology License/Disclaimer, 
 !                     version 3; Last Modified: May 7, 2008.
@@ -56,8 +74,7 @@ contains
       ! Local variables
       integer :: k,i, status, nk, kind
       logical :: monotone,wronghyb
-      real    :: rcoef,pres,pr1,hybtop
-      real*8  :: ztop_8, zsrf_8, eta_8, zeta_8
+      real    :: pres,pr1,hybtop
       real, parameter :: epsilon=1.0e-6
       Logical :: complet_L
 
