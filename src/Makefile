@@ -1,32 +1,50 @@
+#
+# this Makefile has been set for "export" mode (outside of EC Dorval)
+#
+# the only "external" dependency is the shared library for rmnlib (only needed for make shared)
+# make static 
+# is self sufficient (no external dependencies)
+#
+ifeq ($(BASE_ARCH),$(EC_ARCH))
+   $(error ERROR: please setup a compilation environment,  BASE_ARCH is the same as EC_ARCH )
+endif
+
 .SUFFIXES:
 
 .SUFFIXES : .o .F90 .c .a
 
+.c.o:
+	s.cc -c ${CFLAGS} ${SUPP_OPT} -O ${OPTIMIZ} $<
+
+.F90.o:
+	s.f90 -c ${FFLAGS} ${SUPP_OPT} -O ${OPTIMIZ} $<
+
 SHELL = /bin/bash
 
 CFLAGS =
-FFLAGS =
-!!!FFLAGS="'-C -qopenmp -warn all'"
 
-!!!MY_CFLAGS='-C'
+FFLAGS =
 
 SUPP_OPT = -openmp
 
 OPTIMIZ = 2
 
-MYLIB = libvgrid.a
+LIBSTATIC = libvgrid.a
 
-include $(RPN_TEMPLATE_LIBS)/include/makefile_suffix_rules.inc
+LIBSHARED = libvgrid_shared.so
 
-DEFINE = -DFICHSTD98
+LIBRMNSHARED = rmn_shared
 
 .PRECIOUS:
 
-# It is assumed that the environment makes available makefile_suffix_rules.inc; e.g.
-#     . ssmuse-sh -p /ssm/net/rpn/libs/4.1b/environment-includes_4.3_all
-
-
 OBJECTS = vgrid_utils.o vgrid.o vgrid_descriptors.o
+
+# by default, make both static and shared version
+default: ${LIBSTATIC} ${LIBSHARED}
+
+static: ${LIBSTATIC}
+
+shared: ${LIBSHARED}
 
 obj:	$(OBJECTS)
 
@@ -43,9 +61,13 @@ vgrid_descriptors.o:	vgrid_descriptors.F90 \
 vgrid_utils.o:	vgrid_utils.F90 vgrid_descriptors.hf  
 
 
-genlib: $(OBJECTS)
-	rm -f $(MYLIB)
-	ar rcv $(MYLIB) $(OBJECTS)
+${LIBSHARED}: $(OBJECTS)
+	rm -f $@
+	s.f90 -shared $(OBJECTS) -l${LIBRMNSHARED} -o $@
+
+${LIBSTATIC}: $(OBJECTS)
+	rm -f $@
+	ar rcv $@ $(OBJECTS)
 
 clean:
-	rm -f *.o *.mod
+	rm -f *.o *.mod *.a *.so
