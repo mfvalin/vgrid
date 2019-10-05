@@ -30,7 +30,7 @@ module vGrid_Descriptors
    ! var_L  is of type logical
    ! var_CP is of type type(c_prt) from iso_c_binging
 
-   use iso_c_binding, only : c_ptr, C_NULL_PTR, C_CHAR, C_NULL_CHAR, c_int, c_associated, c_loc
+   use iso_c_binding, only : c_ptr, C_NULL_PTR, C_CHAR, C_NULL_CHAR, c_int, C_FLOAT, c_associated, c_loc
 
    implicit none
    private
@@ -38,6 +38,8 @@ module vGrid_Descriptors
    ! Public methods
    public :: vgrid_descriptor                    !vertical grid descriptor structure
    public :: vgd_free                            !class destructor
+   public :: vgd_nullify                         !nullify vgrid C pointer
+   public :: vgd_associated                      !status of vgrid C pointer
    public :: vgd_get                             !get instance variable value
    public :: vgd_put                             !set instance variable value
    public :: vgd_new                             !class constructor
@@ -47,7 +49,11 @@ module vGrid_Descriptors
    public :: vgd_write                           !write coordinates to a file
    public :: vgd_levels                          !compute physical level information
    public :: vgd_dpidpis                         !compute pressure derivative with respesct the sfc pressure
-   public :: vgd_standard_atmosphere_1976        !Get standard atmosphere 1976 variable for a given coordinate
+   public :: vgd_standard_atmosphere_1976   !Get standard atmosphere 1976 variable for a given coordinate
+                                            ! Kept only for backward compatibility with vgrid 6.3
+   public :: vgd_stda76                     !Get standard atmosphere 1976 variable for a given coordinate
+   public :: vgd_stda76_pres_from_hgts_list ! Get standard atmosphere 1976 pressure in Pa from a height list in m
+   public :: vgd_stda76_hgts_from_pres_list ! Get standard atmosphere 1976 heights in m from a pressure list in Pa
    public :: operator(==)                        !overload equivalence operator
 
    ! Public class constants
@@ -57,7 +63,11 @@ module vGrid_Descriptors
    logical :: ALLOW_RESHAPE=.false.              ! Allow reshape of class pointer members
    integer, parameter :: KEY_LENGTH=4            !length of key string considered for get/put operations
    character(len=1), dimension(3), parameter :: MATCH_GRTYP=(/'X','Y','Z'/) !grid types with ip1,2 to ig1,2 mapping
-
+   real(C_FLOAT), public, protected, bind(C, name="VGD_STDA76_SFC_T") :: &
+        VGD_STDA76_SFC_T = 288.15
+   real(C_FLOAT), public, protected, bind(C, name="VGD_STDA76_SFC_P") :: &
+        VGD_STDA76_SFC_P = 101325
+   
    ! FST file record structure
    type FSTD
       sequence
@@ -86,8 +96,8 @@ module vGrid_Descriptors
    end type vgrid_descriptor
    
    interface
-      
-      integer(c_int) function f_diag_withref(vgd_CP, ni, nj, nk, ip1_list_CP, levels_CP,sfc_field_CP,sfc_field_ls_CP, in_log, dpidpis) bind(c, name='C_diag_withref')
+
+      integer(c_int) function f_diag_withref(vgd_CP, ni, nj, nk, ip1_list_CP, levels_CP,sfc_field_CP,sfc_field_ls_CP, in_log, dpidpis) bind(c, name='Cvgd_diag_withref_2ref')
         use iso_c_binding, only: c_ptr, c_int
         type(c_ptr), value :: vgd_CP, ip1_list_CP, sfc_field_CP, sfc_field_ls_CP
         integer (c_int), value :: in_log, dpidpis
@@ -95,7 +105,7 @@ module vGrid_Descriptors
         integer (c_int), value :: ni, nj, nk
       end function f_diag_withref
       
-      integer(c_int) function f_diag_withref_8(vgd_CP, ni, nj, nk, ip1_list_CP, levels_CP,sfc_field_CP,sfc_field_ls_CP, in_log, dpidpis) bind(c, name='C_diag_withref_8')
+      integer(c_int) function f_diag_withref_8(vgd_CP, ni, nj, nk, ip1_list_CP, levels_CP,sfc_field_CP,sfc_field_ls_CP, in_log, dpidpis) bind(c, name='Cvgd_diag_withref_2ref_8')
          use iso_c_binding, only: c_ptr, c_int
          type(c_ptr), value :: vgd_CP, ip1_list_CP, sfc_field_CP, sfc_field_ls_CP
          integer (c_int), value :: in_log, dpidpis
@@ -197,7 +207,7 @@ module vGrid_Descriptors
          character(kind=c_char) :: key(*), value(*)
       end function f_put_char
 
-      integer(c_int) function f_is_valid(vgd_CP, valid_table_name) bind(c, name='C_is_valid')
+      integer(c_int) function f_is_valid(vgd_CP, valid_table_name) bind(c, name='Cvgd_is_valid')
          use iso_c_binding, only: c_ptr, c_char, c_int
          type(c_ptr), value :: vgd_CP
          character(kind=c_char) :: valid_table_name(*)
@@ -239,7 +249,7 @@ module vGrid_Descriptors
       end function f_new_from_table
 
       integer(c_int) function f_new_gen(vgd,kind,version,hyb_CP,size_hyb,rcoef1_CP,rcoef2_CP,rcoef3_CP,rcoef4_CP,ptop_8_CP,pref_8_CP,ptop_out_8_CP, &
-           ip1,ip2,dhm_CP,dht_CP,dhw_CP,avg) bind(c, name='C_new_gen')
+           ip1,ip2,dhm_CP,dht_CP,dhw_CP,avg) bind(c, name='Cvgd_new_gen2')
          use iso_c_binding, only : c_ptr, c_int
          type(c_ptr) :: vgd
          integer (c_int), value :: kind, version, size_hyb
@@ -250,7 +260,7 @@ module vGrid_Descriptors
       
       integer(c_int) function f_new_build_vert(vgd,kind,version,nk,ip1,ip2, &
            ptop_8_CP, pref_8_CP, rcoef1_CP, rcoef2_CP, rcoef3_CP, rcoef4_CP, &
-           a_m_8_CP, b_m_8_CP, c_m_8_CP, a_t_8_CP, b_t_8_CP, c_t_8_CP, a_w_8_CP, b_w_8_CP, c_w_8_CP, ip1_m_CP, ip1_t_CP, ip1_w_CP, nl_m, nl_t, nl_w) bind(c, name='C_new_build_vert')
+           a_m_8_CP, b_m_8_CP, c_m_8_CP, a_t_8_CP, b_t_8_CP, c_t_8_CP, a_w_8_CP, b_w_8_CP, c_w_8_CP, ip1_m_CP, ip1_t_CP, ip1_w_CP, nl_m, nl_t, nl_w) bind(c, name='Cvgd_new_build_vert2')
          use iso_c_binding, only : c_ptr, c_int
          type(c_ptr) :: vgd
          integer (c_int), value :: kind,version,nk,ip1,ip2
@@ -276,20 +286,36 @@ module vGrid_Descriptors
          integer (c_int), value :: unit
       end function f_write_desc
       
-      integer(c_int) function f_standard_atmosphere_1976_temp(vgd_CP, ip1s_CP, nl, temp_CP) bind(c, name='Cvgd_standard_atmosphere_1976_temp')
+      integer(c_int) function f_stda76_temp(vgd_CP, ip1s_CP, nl, temp_CP) bind(c, name='Cvgd_stda76_temp')
         use iso_c_binding, only : c_ptr, c_int
         type(c_ptr), value :: vgd_CP, ip1s_CP
         integer (c_int), value :: nl
         type(c_ptr), value :: temp_CP
-      end function f_standard_atmosphere_1976_temp
+      end function f_stda76_temp
 
-      integer(c_int) function f_standard_atmosphere_1976_pres(vgd_CP, ip1s_CP, nl, pres_CP, sfc_temp_CP, sfc_pres_CP) bind(c, name='Cvgd_standard_atmosphere_1976_pres')
+      integer(c_int) function f_stda76_pres(vgd_CP, ip1s_CP, nl, pres_CP, sfc_temp_CP, sfc_pres_CP) bind(c, name='Cvgd_stda76_pres')
         use iso_c_binding, only : c_ptr, c_int
         type(c_ptr), value :: vgd_CP, ip1s_CP
         integer (c_int), value :: nl
         type(c_ptr), value :: pres_CP, sfc_temp_CP, sfc_pres_CP
-      end function f_standard_atmosphere_1976_pres
+      end function f_stda76_pres
       
+      integer(c_int) function f_stda76_pres_from_hgts_list( &
+           pres_CP, hgts_CP, nb) bind(c, name=&
+           'Cvgd_stda76_pres_from_hgts_list')
+        use iso_c_binding, only : c_ptr, c_int
+        type(c_ptr), value :: pres_CP, hgts_CP
+        integer (c_int), value :: nb
+      end function f_stda76_pres_from_hgts_list
+
+      integer(c_int) function f_stda76_hgts_from_pres_list( &
+           hgts_CP, pres_CP, nb) bind(c, name=&
+           'Cvgd_stda76_hgts_from_pres_list')
+        use iso_c_binding, only : c_ptr, c_int
+        type(c_ptr), value :: pres_CP, hgts_CP
+        integer (c_int), value :: nb
+      end function f_stda76_hgts_from_pres_list
+
    end interface
    
    interface vgd_new
@@ -571,7 +597,7 @@ contains
          print*,'(F_vgd) ERROR in new_gen, problem with f_new_gen'
          return
       endif
-      status = VGD_OK;
+      status = VGD_OK
    end function new_gen
 
    integer function new_build_vert(self,kind,version,nk,ip1,ip2, &
@@ -814,7 +840,7 @@ contains
       
       ier = f_vgdcmp(vgd1%cptr, vgd2%cptr)
       if( ier /= 0 )then
-         print*,'Return code is',ier
+         !print*,'Return code is',ier
          return
       end if
 
@@ -908,7 +934,7 @@ contains
        endif
     enddo grids
 
-    call convip (ip1, lev, kind,-1, blk_S, .false.)
+    call convip_plus (ip1, lev, kind,-1, blk_S, .false.)
     ! Create grid descriptor instance and call level calculator
     if (any(MATCH_GRTYP == grtyp)) then
        error = new_read(gd,unit=unit,format='fst',ip1=ig1,ip2=ig2,kind=kind)
@@ -1146,7 +1172,7 @@ contains
 #include "BODY_F_levels_withref.hf"
 #undef REAL_KIND
 #undef PROC_SUFF
-   end function levels_withref
+  end function levels_withref
 
   integer function levels_withref_8(self,ip1_list,levels,sfc_field,in_log, &
        sfc_field_ls) result(status)
@@ -1156,7 +1182,7 @@ contains
 #include "BODY_F_levels_withref.hf"
 #undef REAL_8
 #undef REAL_KIND
-#undef PROC_SUFF    
+#undef PROC_SUFF
    end function levels_withref_8
 
    integer function dpidpis_withref(self,ip1_list,dpidpis,sfc_field) result(status)
@@ -1167,7 +1193,7 @@ contains
 #undef REAL_KIND
 #undef PROC_SUFF
    end function dpidpis_withref
-
+   
    integer function dpidpis_withref_8(self,ip1_list,dpidpis,sfc_field) result(status)
 #define REAL_8 1
 #define REAL_KIND 8
@@ -1186,7 +1212,7 @@ contains
 #undef REAL_KIND
 #undef PROC_SUFF
    end function diag_withref
-   
+
    integer function diag_withref_8(self,ip1_list,levels,sfc_field,in_log,dpidpis,sfc_field_ls) result(status)
 #define REAL_8 1
 #define REAL_KIND 8
@@ -1196,7 +1222,7 @@ contains
 #undef REAL_KIND
 #undef PROC_SUFF
    end function diag_withref_8
-
+   
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!! Write descriptors
    
@@ -1961,8 +1987,31 @@ contains
     status = VGD_OK
 
  end function get_ref
-  
+
  integer function vgd_standard_atmosphere_1976(self, ip1s, val, var, sfc_temp, sfc_pres) result(status)
+    ! Kept only for backward compatibitity with vgrid 6.3
+    type(vgrid_descriptor), intent(in) :: self         !Vertical descriptor instance
+    integer, dimension(:), target, intent(in) :: ip1s  !ip1 list to get value for
+    real, dimension(:), pointer, intent(inout) :: val  !Standard Atmosphere 1976 value for ip1s
+    character(len=*), intent(in) :: var                !Variable name to get valid choice are "TEMPERATURE", "PRESSURE"
+    real, optional, target, intent(in) :: sfc_temp     !Use this surface temperature for standard atmosphere
+    real, optional, target, intent(in) :: sfc_pres     !Use this surface pressure for standard atmosphere
+    ! Local variables
+    if(present(sfc_temp) .and. present(sfc_pres))then
+       status=vgd_stda76(self, ip1s, val, var, sfc_temp=sfc_temp, sfc_pres=sfc_pres)
+       return
+    endif
+    if(present(sfc_temp))then
+       status=vgd_stda76(self, ip1s, val, var, sfc_temp=sfc_temp)
+       return
+    endif
+    if(present(sfc_pres))then
+       status=vgd_stda76(self, ip1s, val, var, sfc_pres=sfc_pres)
+       return
+    endif       
+ end function vgd_standard_atmosphere_1976
+ 
+ integer function vgd_stda76(self, ip1s, val, var, sfc_temp, sfc_pres) result(status)
    use vgrid_utils, only: get_allocate, up
    type(vgrid_descriptor), intent(in) :: self         !Vertical descriptor instance
    integer, dimension(:), target, intent(in) :: ip1s  !ip1 list to get value for
@@ -1974,11 +2023,11 @@ contains
    type (c_ptr) :: ip1s_CP, val_CP, sfc_pres_CP, sfc_temp_CP
    status = VGD_ERROR
    if(.not.is_valid(self,'SELF'))then
-      write(for_msg,*) 'vgrid structure is not valid in standard_atmosphere_1976'
+      write(for_msg,*) 'vgrid structure is not valid in stda76'
       call msg(MSG_ERROR,VGD_PRFX//for_msg)       
       return
    endif
-   if( get_allocate('val',val,size(ip1s),ALLOW_RESHAPE,'(in standard_atmosphere_1976)') /= 0) then
+   if( get_allocate('val',val,size(ip1s),ALLOW_RESHAPE,'(in stda76)') /= 0) then
       if(associated(val))deallocate(val)
       return
    endif
@@ -1997,28 +2046,88 @@ contains
    select case (trim(up(var)))
    case ('TEMPERATURE')
       if (present(sfc_temp) .or. present(sfc_pres) )then
-          write(for_msg,*) 'ERROR with vgd_standard_atmosphere_1976_temp, option sfc_temp and/or sfc_pres not implemented for TEMPERATURE.'&
+          write(for_msg,*) 'ERROR with vgd_stda76_temp, option sfc_temp and/or sfc_pres not implemented for TEMPERATURE.'&
                //'Please contact the vgrid dev team.'
           call msg(MSG_ERROR,VGD_PRFX//for_msg) 
           return
       endif
-      if( f_standard_atmosphere_1976_temp(self%cptr, ip1s_CP, size(val), val_CP) /= VGD_OK) then
-         write(for_msg,*) 'ERROR with vgd_standard_atmosphere_1976_temp'
+      if( f_stda76_temp(self%cptr, ip1s_CP, size(val), val_CP) /= VGD_OK) then
+         write(for_msg,*) 'ERROR with vgd_stda76_temp'
          call msg(MSG_ERROR,VGD_PRFX//for_msg)       
          return
       endif
    case ('PRESSURE')
-      if( f_standard_atmosphere_1976_pres(self%cptr, ip1s_CP, size(val), val_CP, sfc_temp_CP, sfc_pres_CP ) /= VGD_OK) then
-         write(for_msg,*) 'ERROR with vgd_standard_atmosphere_1976_pres'
+      if( f_stda76_pres(self%cptr, ip1s_CP, size(val), val_CP, sfc_temp_CP, sfc_pres_CP ) /= VGD_OK) then
+         write(for_msg,*) 'ERROR with vgd_stda76_pres'
          call msg(MSG_ERROR,VGD_PRFX//for_msg)       
          return
       endif
    case DEFAULT
-      write(for_msg,*) 'invalid variable name given to vgd_standard_atmosphere_1976',trim(var)
+      write(for_msg,*) 'invalid variable name given to vgd_stda76',trim(var)
       call msg(MSG_ERROR,VGD_PRFX//for_msg)
       return
    end select
    status = VGD_OK
- end function vgd_standard_atmosphere_1976
+ end function vgd_stda76
+
+ integer function vgd_stda76_pres_from_hgts_list(pres, hgts, nb) result(status)
+   implicit none
+   integer :: nb
+   real, dimension(nb), target :: pres, hgts
+   ! Local variables
+   type (c_ptr) :: pres_CP, hgts_CP
+
+   status = VGD_ERROR
+   
+   pres_CP = c_loc(pres)
+   hgts_CP = c_loc(hgts)   
+   if( f_stda76_pres_from_hgts_list(pres_CP, hgts_CP, nb) &
+        == VGD_ERROR)return
+   status = VGD_OK
+   return
+
+ end function vgd_stda76_pres_from_hgts_list
+
+ integer function vgd_stda76_hgts_from_pres_list(hgts, pres, nb) result(status)
+   implicit none
+   integer :: nb
+   real, dimension(nb), target :: hgts, pres
+   ! Local variables
+   type (c_ptr) :: hgts_CP, pres_CP
+
+   status = VGD_ERROR
+   
+   hgts_CP = c_loc(hgts)
+   pres_CP = c_loc(pres)   
+   if( f_stda76_hgts_from_pres_list(hgts_CP, pres_CP, nb) &
+        == VGD_ERROR)return
+   status = VGD_OK
+   return
+
+ end function vgd_stda76_hgts_from_pres_list
+
+   subroutine vgd_nullify(F_vgd)
+      implicit none
+      !@arguments
+      type(vgrid_descriptor),intent(out) :: F_vgd
+      !*@/
+      !---------------------------------------------------------------
+      F_vgd%cptr = C_NULL_PTR
+      !---------------------------------------------------------------
+      return
+   end subroutine vgd_nullify
+
+   function vgd_associated(F_vgd) result(F_istat_L)
+      implicit none
+      !@arguments
+      type(vgrid_descriptor),intent(in) :: F_vgd
+      !@returns
+      logical :: F_istat_L
+      !*@/
+      !---------------------------------------------------------------
+      F_istat_L = c_associated(F_vgd%cptr)
+      !---------------------------------------------------------------
+      return
+   end function vgd_associated
 
 end module vGrid_Descriptors

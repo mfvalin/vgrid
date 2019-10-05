@@ -17,12 +17,12 @@ def _make(b):
     b.shell("""
             set -e
             cd ${BH_PULL_SOURCE}
-            REMOTE_NAME=gitlab_com
+            REMOTE_NAME=/home/sidr000/SSM_pkg_installation/autobuild_sandboxes/autobuild_jeff/vgrid
             REMOTE=$(git remote -v | grep fetch | grep ${REMOTE_NAME} | awk '{print $2}')
-            if [ "${REMOTE}" = "" ];then
-               echo "ERROR git remote ${REMOTE_NAME} not found"
-               exit 1
-            fi
+            #if [ "${REMOTE}" = "" ];then
+            #   echo "ERROR git remote ${REMOTE_NAME} not found"
+            #   exit 1
+            #fi
             (
              CONTROL_DIR=${BH_PACKAGE_CONTROL_DIR}/${BH_PROJECT_NAME}/.ssm.d
              mkdir -p ${CONTROL_DIR}
@@ -32,7 +32,7 @@ def _make(b):
              echo \"Version: ${BH_PULL_SOURCE_GIT_BRANCH}\"                                                       >> ${CONTROL_FILE}
              echo \"Platform: ${ORDENV_PLAT}\"                                                                    >> ${CONTROL_FILE}
              echo \"Maintainer: cmdn (A. Plante)\"                                                                >> ${CONTROL_FILE}
-             echo \"BuildInfo: git clone ${REMOTE}\"                                                              >> ${CONTROL_FILE}
+             echo \"BuildInfo: git clone ${REMOTE_NAME}\"                                                              >> ${CONTROL_FILE}
              echo \"           cd in new directory created\"                                                      >> ${CONTROL_FILE}
              echo \"           git checkout -b temp ${BH_PULL_SOURCE_GIT_BRANCH}\"                                >> ${CONTROL_FILE}
              echo \"           # or git checkout -b temp $(git rev-parse HEAD)\"                                  >> ${CONTROL_FILE}
@@ -87,16 +87,11 @@ if __name__ == "__main__":
    b.actions.set("package", actions.package.to_ssm)
 
    b.supported_platforms = [
-      "ubuntu-12.04-amd64-64",
       "ubuntu-14.04-amd64-64",
-      "aix-7.1-ppc7-64",
+      "ubuntu-18.04-amd64-64",
    ]
    dr.run(b)
 
-   b.supported_modes = [
-      "intel",
-      "xlf13",
-   ]
 
 # Exemple d'appel:
 #   ./bh_vgrid.py -p ubuntu-12.04-amd64-64 -m intel

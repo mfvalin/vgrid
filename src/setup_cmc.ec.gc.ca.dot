@@ -2,14 +2,25 @@
 
 case "${ORDENV_PLAT}" in
 
+     ubuntu-18.04-amd64-64)
+      export BH_MODE=intel
+      . ssmuse-sh -x /fs/ssm/hpco/exp/intelpsxe-cluster-19.0.3.199
+      . ssmuse-sh -x /ssm/net/rpn/base/01.0
+      . r.load.dot /ssm/net/rpn/libs/19.0-beta
+      TEMPO=$(s.locate --lib rmnshared)
+      export RPN_SHARED_LIB=${TEMPO%/*}
+      export MY_FFLAGS="-qopenmp -fp-model source  -warn all ${MY_FFLAGS}"
+      export MY_CFLAGS="-qopenmp -fp-model precise -w3 ${MY_CFLAGS}"
+      :;;
+      
    ubuntu-14.04-amd64-64)
       export BH_MODE=intel
       VGRID_COMPILER=intel2016
+      #VGRID_COMPILER=gcc-4.9.1
       if [ ${VGRID_COMPILER} == intel2016 ];then
          HPCS_BASE=/ssm/net/hpcs/201402/04/base
          HPCS_COMP=/ssm/net/hpcs/exp/intel2016/01
-         export SHARED_RNM_EXT=_016.2
-         . r.load.dot ${HPCS_BASE} ${HPCS_COMP}
+         . r.load.dot ${HPCS_BASE} ${HPCS_COMP}	 
 	 . r.load.dot rpn/libs/16.2 
 	 TEMPO=$(s.locate --lib rmnshared)
 	 export RPN_SHARED_LIB=${TEMPO%/*}
@@ -39,6 +50,8 @@ case "${ORDENV_PLAT}" in
 	export GFORTRAN_INCLUDE=/users/dor/armn/bou/ords/RPN_COMM_4.5.16.10/bh_scripts/LIBRMN/librmn-gfortran_016.2_ubuntu-14.04-amd64-64/include/Linux_x86-64/gfortran
 	export GFORTRAN_LIB=/users/dor/armn/bou/ords/RPN_COMM_4.5.16.10/bh_scripts/LIBRMN/librmn-gfortran_016.2_ubuntu-14.04-amd64-64/lib/Linux_x86-64/gfortran
 	MY_FFLAGS=-I${GFORTRAN_INCLUDE}
+
+
 
       elif [ ${VGRID_COMPILER} == pgi1401 ];then
            . ssmuse-sh -d hpcs/201402/02/base -d hpcs/201402/02/pgi1401
@@ -81,8 +94,6 @@ case "${ORDENV_PLAT}" in
          echo "ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR"
          echo "Compiler not supported: " ${VGRID_COMPILER}
       fi
-      export SHARED_RNM_SSM_PREF=/ssm/net/
-      export SHARED_COMP_rpath=${INTELCOMP_HOME}/lib/intel64
       :;;
 
    "") echo "ERROR: variable ORDENV_PLAT not set"

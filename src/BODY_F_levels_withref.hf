@@ -1,3 +1,4 @@
+      use vgrid_utils, only: get_allocate
       ! Given referent, compute physical levelling information from the vertical description
       type(vgrid_descriptor), intent(in) :: self                  !Vertical descriptor instance
       integer, dimension(:), intent(in) :: ip1_list               !Key of prototype field
