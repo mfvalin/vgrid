@@ -1,23 +1,22 @@
 # User options
 # see setup* files
-#RMN = rmn_014_rc2
 
 # Override incorrect implicits
 SUBDIRS = lib examples tests
 
 all:
 	for dir in $(SUBDIRS) ; do\
-	  (cd $$dir && $(MAKE) $(MY_FFLAGS) RMN=$(RMN)) ;\
+	  (cd $$dir && $(MAKE) $(MAKEFLAGS) RMN=$(RMN)) ;\
 	done;
 
 clean:
 	for dir in $(SUBDIRS); do \
-	  (cd $$dir && $(MAKE) $@ $(MY_FFLAGS)) ;\
+	  (cd $$dir && $(MAKE) $@ $(MAKEFLAGS)) ;\
 	done;
 
 distclean:
 	for dir in $(SUBDIRS) ssm ; do \
-	  (cd $$dir && $(MAKE) $@ $(MY_FFLAGS)) ;\
+	  (cd $$dir && $(MAKE) $@ $(MAKEFLAGS)) ;\
 	done;
 
 release: all

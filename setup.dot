@@ -1,23 +1,40 @@
-echo "Acquiring compilation tools"
 
-. version.dot
+LINUX_COMP=intel13sp1u2
+#LINUX_COMP=pgi1401
+#LINUX_COMP=pgi9xx
 
-unset MY_FFLAGS MY_CFLAGS
+unset FFLAGS_INTEL
 
+if [ ${BASE_ARCH} = AIX-powerpc7 ];then
 
-MY_FFLAGS=""
-#MY_FFLAGS="-C -g -O0"
+   . ssmuse-sh \
+      -d hpcs/201402/02/base\
+      -d hpcs/ext/xlf_13.1.0.10\
+      -d rpn/libs/15.2
 
-if   [ $(hostname -d) = cmc.ec.gc.ca ];then
-   . setup_cmc.ec.gc.ca.dot
-elif [ $(hostname -d) = science.gc.ca ];then
-   . setup_science.gc.ca.dot
 else
-   echo "ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR"
-   echo "ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR"
-   echo "ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR"
-   echo "ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR"
-   echo Domain $(hostname -d) not supported
+
+   s.use make as gmake
+
+   case ${LINUX_COMP} in
+      intel13sp1u2). ssmuse-sh \
+                    -d hpcs/201402/02/base\
+                    -d hpcs/201402/02/intel13sp1u2\
+                    -d rpn/libs/15.2
+                 export FFLAGS_INTEL='-fp-model source'
+		 :;;
+         pgi1401). ssmuse-sh \
+	            -d hpcs/201402/02/base\
+                    -d hpcs/201402/02/pgi1401\
+                    -d rpn/libs/15.2
+		 :;;
+
+              *) echo "Add compiler ${LINUX_COMP} in case ";;
+   esac
+
 fi
 
-export MY_FFLAGS BH_MAKE BH_HOST BH_MODE RPN_LIB SHARED_RNM_SSM_PREF SHARED_RNM_EXT
+echo
+export PLATFORM=$(ssm platforms | awk '{print $1}')
+export RCOMPILE=s.compile
+export BH_MAKE=gmake
