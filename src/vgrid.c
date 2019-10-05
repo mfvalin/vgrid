@@ -64,6 +64,7 @@ static int ref_namel_valid  [VALID_TABLE_SIZE] = {    0,    0,    0,    0,    0,
 static int dhm_valid        [VALID_TABLE_SIZE] = {    0,    0,    0,    0,    0,    0,    0,    0, 5005, 5100,    0};
 static int dht_valid        [VALID_TABLE_SIZE] = {    0,    0,    0,    0,    0,    0,    0,    0, 5005, 5100,    0};
 static int is_in_logp       [VALID_TABLE_SIZE] = {    0,    0,    0,    0,    0, 5002, 5003, 5004, 5005, 5100,    0};
+static int vcode_valid      [VALID_TABLE_SIZE] = { 1001, 1002, 1003, 2001, 5001, 5002, 5003, 5004, 5005, 5100, 5999};
 
 static int c_encode_vert_5002_5003_5004_5005(vgrid_descriptor **self, char update);
 static int fstd_init(vgrid_descriptor *VGrid);
@@ -431,11 +432,12 @@ static void decode_HY(VGD_TFSTD_ext var, double *ptop_8, double *pref_8, float *
 
 static int my_fstprm(int key,VGD_TFSTD_ext *ff) {
   //var->ip1 = 62;
+  double nhours;
   STR_INIT(ff->typvar,VGD_LEN_TYPVAR);
   STR_INIT(ff->nomvar,VGD_LEN_NAME);
   STR_INIT(ff->etiket,VGD_LEN_ETIK);
   STR_INIT(ff->grtyp, VGD_LEN_GRTYP);
- 
+
   if( c_fstprm(key,
 	       &ff->dateo,  &ff->deet,   &ff->npas, 
 	       &ff->ni,     &ff->nj,     &ff->nk,
@@ -448,6 +450,8 @@ static int my_fstprm(int key,VGD_TFSTD_ext *ff) {
     printf("(Cvgd) ERROR: cannot fstprm for fstkey %d\n",key);
     return(VGD_ERROR);
   }
+  nhours = ff->deet * ff->npas / 3600.;
+  f77name(incdatr)(&ff->datev,&ff->dateo,&nhours);
   return(VGD_OK);
 }
 
@@ -3913,7 +3917,11 @@ int C_new_gen(vgrid_descriptor **self, int kind, int version, float *hyb, int si
     printf("(Cvgd) ERROR in C_new_gen, ERROR with Cvgd_set_vcode_i");
     return (VGD_ERROR);
   }
-
+  if( ! is_valid(*self, vcode_valid) ){
+    printf("(Cvgd) ERROR in C_new_gen, vcode %d is not valid.\n",(*self)->vcode);
+    return (VGD_ERROR);
+  }
+  
   //TODO get better error handling like in new_build
   errorInput = 0;
   errorInput = errorInput + is_required_double((*self), ptop_8,     ptop_8_valid,     "ptop_8"    );
@@ -4121,16 +4129,24 @@ static int C_get_consistent_hy(int iun, VGD_TFSTD_ext var, VGD_TFSTD_ext *va2, c
   int liste[nmax];
   VGD_TFSTD_ext va3;
 
-  // Note: HY has dateo not datev
+  // Note: HY may have dateo or datev
+  // Try dateo first
   error = c_fstinl(iun, &ni, &nj, &nk, var.dateo, var.etiket, -1, -1, -1, " ", nomvar, liste, &infon, nmax);
   if (error < 0) {
-    printf("(Cvgd) ERROR in C_get_consistent_hy, with fstinl\n");
+    printf("(Cvgd) ERROR in C_get_consistent_hy, with fstinl on dateo\n");
     return(VGD_ERROR);
-  }
-  
+  }  
   if( infon == 0 ){
-    printf("(Cvgd)  ERROR in C_get_consistent_hy, no record of nomvar = %s, date = %d, etiket = %s found\n", nomvar, var.dateo, var.etiket);
-    return(VGD_ERROR);
+    // No dateo, check datev
+    error = c_fstinl(iun, &ni, &nj, &nk, var.datev, var.etiket, -1, -1, -1, " ", nomvar, liste, &infon, nmax);
+    if (error < 0) {
+      printf("(Cvgd) ERROR in C_get_consistent_hy, with fstinl on datev\n");
+      return(VGD_ERROR);
+    }
+    if( infon == 0 ){
+      printf("(Cvgd)  ERROR in C_get_consistent_hy, no record of nomvar = %s, (dateo = %d or datev = %d), etiket = %s found\n", nomvar, var.dateo, var.datev, var.etiket);
+      return(VGD_ERROR);
+    }
   }
   
   for( ind = 0; ind < infon; ind++ ){
