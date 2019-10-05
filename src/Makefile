@@ -1,14 +1,14 @@
 
 ifeq ($(BASE_ARCH),$(EC_ARCH))
    $(info ERROR: please setup the compilation environment by typing the folowing:)
-   $(info . setup.dot)
+   $(info . setup.dot or . setup_gpsc.dot)
    $(error )
 endif
 
 default: libdescrip.a
 
 dependencies.mk: *.c *.F90 *.h *.hc
-	ls *.c *.F90 | ./s.dependencies.pl > dependencies.mk ;\
+	ls *.hc *.c *.F90 | ./s.dependencies.pl > dependencies.mk ;\
 
 include dependencies.mk
 
