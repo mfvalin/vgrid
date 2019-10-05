@@ -793,6 +793,10 @@ int Cvgd_diag_withref(vgrid_descriptor *self, int ni, int nj, int nk, int *ip1_l
 static vgrid_descriptor* c_vgd_construct() {
 
    vgrid_descriptor *vgrid = malloc(sizeof(vgrid_descriptor));
+   if( !vgrid ){
+     printf("(Cvgd) ERROR in c_vgd_construct, cannot allocate vgrid\n");
+     return NULL;
+   }
 
    if( vgrid ) {
       vgrid->ptop_8        = VGD_MISSING;
@@ -829,7 +833,6 @@ static vgrid_descriptor* c_vgd_construct() {
       vgrid->rec.deet = 0;
       vgrid->rec.npas = 0;
       vgrid->rec.nbits = -64;
-      vgrid->rec.datyp = 0;
       vgrid->rec.datyp = 0;
       vgrid->rec.ip1 = 0;
       vgrid->rec.ip2 = 0;
@@ -1126,6 +1129,7 @@ int Cvgd_new_build_vert(vgrid_descriptor **self, int kind, int version, int nk, 
       errorInput = 1;
     }
   } else if ( is_valid( *self, a_t_8_valid_get) ) {
+    // a_t_8 is not a valid component put may be get in which case we return the momentum values
     (*self)->a_t_8 = (*self)->a_m_8;
     (*self)->nl_t = (*self)->nl_m;
   }
@@ -1143,7 +1147,7 @@ int Cvgd_new_build_vert(vgrid_descriptor **self, int kind, int version, int nk, 
       errorInput = 1;
     }
   } else if ( is_valid( *self, b_t_8_valid_get) ) {
-    // a_t_8 is not a valid component put may be get in which case we return the momentum values
+    // b_t_8 is not a valid component put may be get in which case we return the momentum values
     (*self)->b_t_8 = (*self)->b_m_8;
     (*self)->nl_t = (*self)->nl_m;
   }
