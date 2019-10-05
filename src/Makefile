@@ -35,6 +35,9 @@ LIBSHARED = libvgrid_shared.so
 
 LIBRMNSHARED = rmn_shared
 
+# install directory
+INSTALL = ../..
+
 .PRECIOUS:
 
 OBJECTS = vgrid_utils.o vgrid.o vgrid_descriptors.o
@@ -47,6 +50,12 @@ static: ${LIBSTATIC}
 shared: ${LIBSHARED}
 
 obj:	$(OBJECTS)
+
+install : ${LIBSTATIC} ${LIBSHARED}
+	mkdir -p ${INSTALL}/lib/${EC_ARCH}
+	mkdir -p ${INSTALL}/include/${EC_ARCH}
+	cp ${LIBSTATIC} ${LIBSHARED} ${INSTALL}/lib/${EC_ARCH}
+	cp *.mod vgrid.h ${INSTALL}/include/${EC_ARCH}
 
 vgrid.o:	vgrid.c \
 	BODY_C_compute_heights_4001.hc  BODY_C_compute_pressure_2001.hc  armnlib.h  BODY_C_compute_pressure_5100.hc  \
