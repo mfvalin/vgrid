@@ -29,7 +29,7 @@ libdescrip.a: $(OBJECTS) dependencies.mk vgrid_version
 
 shared: libdescrip.a
 	if [ $$ORDENV_PLAT != ubuntu-12.04-amd64-64 -a $$ORDENV_PLAT != aix-7.1-ppc7-64 ]; then \
-	   s.f90 -shared -openmp -static -static-intel -o libdescripshared.so *.o -lrmnshared -Wl,-rpath,$(RPN_LIB)/$(ORDENV_PLAT)/lib/$(BASE_ARCH)/$(COMP_ARCH) -Wl,-rpath,$(SHARED_COMP_rpath);\
+	   s.f90 -shared -openmp -o libdescripshared.so *.o -lrmnshared -Wl,-rpath,$(RPN_SHARED_LIB);\
 	else \
 	   echo "No shared library on $$ORDENV_PLAT anymore due to new incompatible flag -static-intel";\
 	fi
@@ -42,7 +42,7 @@ ssm:
 	../bh_vgrid.py -p $(ORDENV_PLAT) -m $(BH_MODE) -v BH_PULL_SOURCE=$(PWD)/.. -v BH_PULL_SOURCE_GIT_BRANCH=$(BH_PULL_SOURCE_GIT_BRANCH) -v BH_PACKAGE_VERSION=$(BH_PULL_SOURCE_GIT_BRANCH)-$(COMP_ARCH) --local ;\
 
 clean:
-	rm -f *.o *.mod ;\
+	rm -f *.o *.mod dependencies.mk;\
 
 clean_ssm: clean_bh
 	rm -f *.ssm ;\
