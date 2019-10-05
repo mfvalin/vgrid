@@ -183,13 +183,6 @@ module vGrid_Descriptors
          character(kind=c_char) :: key(*)
       end function f_put_int
 
-      integer function f_put_real8(vgd_CP, key, value) bind(c, name='Cvgd_put_double')
-         use iso_c_binding, only: c_ptr, c_char, c_double
-         type(c_ptr) :: vgd_CP
-         real (c_double), value :: value
-         character(kind=c_char) :: key(*)
-      end function f_put_real8
-
       integer function f_put_char(vgd_CP, key, value) bind(c, name='Cvgd_put_char')
          use iso_c_binding, only: c_ptr, c_char, c_char
          type(c_ptr) :: vgd_CP
@@ -200,7 +193,7 @@ module vGrid_Descriptors
          use iso_c_binding, only: c_ptr, c_char
          type(c_ptr), value :: vgd_CP
          character(kind=c_char) :: valid_table_name(*)
-      end function f_is_valid
+       end function f_is_valid
 
       integer function f_print_desc(vgd_CP, stdout, convip) bind(c, name='Cvgd_print_desc')
          use iso_c_binding, only : c_ptr, c_int
@@ -304,7 +297,7 @@ module vGrid_Descriptors
       module procedure put_int
       !module procedure put_int_1d
       !module procedure put_real_1d
-      module procedure put_real8
+      !module procedure put_real8
       !module procedure put_real8_1d
       module procedure put_real8_3d
       module procedure put_char
@@ -1093,12 +1086,13 @@ contains
      return
   end function levels_withref_prof
 
-  integer function levels_withref_prof_8(self,ip1_list,levels,sfc_field,in_log) result(status)
+  integer function levels_withref_prof_8(self,ip1_list,levels,sfc_field,in_log,sfc_field_ls) result(status)
      type(vgrid_descriptor), intent(in) :: self                  !Vertical descriptor instance
      integer, dimension(:), intent(in) :: ip1_list               !Key of prototype field
-     real*8, dimension(:), pointer :: levels                       !Physical level values
-     real*8, optional, intent(in) :: sfc_field                     !Surface field reference for coordinate [none]
+     real*8, dimension(:), pointer :: levels                     !Physical level values
+     real*8, optional, intent(in) :: sfc_field                   !Surface field reference for coordinate [none]
      logical, optional, intent(in) :: in_log                     !Compute levels in ln() [.false.]          
+     real*8, optional, intent(in) :: sfc_field_ls                !Surface field reference for coordinate [none]
 
      ! Local variables
      real*8 :: my_sfc_field
@@ -1120,7 +1114,11 @@ contains
      if (present(in_log)) my_in_log = in_log
 
      ! Wrap call to level calculation
-     status = diag_withref_prof_8(self,ip1_list,levels,sfc_field=my_sfc_field,in_log=my_in_log)
+     if(present(sfc_field_ls))then
+        status = diag_withref_prof_8(self,ip1_list,levels,sfc_field=my_sfc_field,in_log=my_in_log,sfc_field_ls=sfc_field_ls)
+     else
+        status = diag_withref_prof_8(self,ip1_list,levels,sfc_field=my_sfc_field,in_log=my_in_log)
+     endif
      return
   end function levels_withref_prof_8
 
@@ -1251,9 +1249,13 @@ contains
         return
      endif
      sfc_field_2d=my_sfc_field
-     sfc_field_ls_2d=my_sfc_field_ls         
      ! Wrap call to level calculator
-     error = diag_withref_8(self,sfc_field=sfc_field_2d,sfc_field_ls=sfc_field_ls_2d,ip1_list=ip1_list,levels=levels_3d,in_log=my_in_log,dpidpis=my_dpidpis)    
+     if (present(sfc_field_ls))then
+        sfc_field_ls_2d=my_sfc_field_ls
+        error = diag_withref_8(self,sfc_field=sfc_field_2d,sfc_field_ls=sfc_field_ls_2d,ip1_list=ip1_list,levels=levels_3d,in_log=my_in_log,dpidpis=my_dpidpis) 
+     else
+        error = diag_withref_8(self,sfc_field=sfc_field_2d,ip1_list=ip1_list,levels=levels_3d,in_log=my_in_log,dpidpis=my_dpidpis)    
+     endif
      if (error /= 0) then
         deallocate(sfc_field_2d,levels_3d)
         write(for_msg,*) 'problem with diag_withref in diag_withref_prof_8'
@@ -1580,7 +1582,7 @@ contains
             return
          endif
       else
-         if (is_valid(self,"ref_namel_valid")) then
+         if (is_valid(self,"ref_namel_valid") .and. .not. my_dpidpis) then
             write(for_msg,*) 'reference large scale field must be provided to diag_withref_8'
             call msg(MSG_ERROR,VGD_PRFX//for_msg)
             return
@@ -1614,7 +1616,6 @@ contains
       if (present(sfc_field)) sfc_field_CP = c_loc(sfc_field(1,1))
       sfc_field_ls_CP = C_NULL_PTR
       if (present(sfc_field_ls)) sfc_field_ls_CP = c_loc(sfc_field_ls(1,1))
-      
       istat = f_diag_withref_8(self%cptr,ni,nj,nk,ip1_list_CP,levels_CP,sfc_field_CP,sfc_field_ls_CP,in_log_int,dpidpis_int)      
       if (istat /= VGD_OK) then
          if(my_dpidpis)then
@@ -2219,21 +2220,7 @@ contains
       my_key = up(key(1:KEY_LENGTH))
       status = f_put_int(self%cptr, trim(my_key)//C_NULL_CHAR, value)
    end function put_int
-
-   integer function put_real8(self, key, value) result(status)
-      use vgrid_utils, only : up
-      type(vgrid_descriptor), intent(inout) :: self !Vertical descriptor instance
-      character(len=*), intent(in) :: key           !Descriptor key to set
-      real(kind=8), target, intent(in) :: value     !Value to set
-
-      ! Internal variables
-      character(len=KEY_LENGTH) :: my_key
-
-      my_key = up(key(1:KEY_LENGTH))
-      status = f_put_real8(self%cptr, trim(my_key)//C_NULL_CHAR, value)
-      
-   end function put_real8
-
+   
    integer function put_real8_3d(self, key, value) result(status)
       use vgrid_utils, only : up
       type(vgrid_descriptor), intent(inout) :: self !Vertical descriptor instance
@@ -2244,7 +2231,7 @@ contains
       print*,'(F_vgd) ERROR: in put_real8_3d, putint real8 3D array is not implemented in this librairy'
       print*,'(F_vgd)        if you want to put the VGTB, you may do it by reconstructing a new '
       print*,'(F_vgd)        vgrid_descriptor e.g. vgd_new(self,table_8)'
-      print*,'(F_vgd)        If you think you really need to vgd_put VGTB contact Andre PLante'
+      print*,'(F_vgd)        If you think you really need to vgd_put VGTB contact dev teem'
       ! To silence the compiler warning
       if(associated(value))then
       endif
